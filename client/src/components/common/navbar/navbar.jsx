@@ -1,6 +1,6 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import fixellLogo from "../../../assets/logos/fixell-logo.png";
-
 
 const Navbar = () => {
   return (
@@ -17,20 +17,26 @@ const Navbar = () => {
 
       {/* Center: Navigation Links */}
       <div className="hidden md:flex space-x-8 text-gray-700 font-medium">
-        <a href="#" className="hover:text-green-600 transition">Home</a>
-        <a href="#" className="hover:text-green-600 transition">About</a>
-        <a href="#" className="hover:text-green-600 transition">Marketplace</a>
-        <a href="#" className="hover:text-green-600 transition">Support</a>
+        <Link to="/" className="hover:text-green-600 transition">Home</Link>
+        <Link to="/about" className="hover:text-green-600 transition">About</Link>
+        <Link to="/marketplace" className="hover:text-green-600 transition">Marketplace</Link>
+        <Link to="/support" className="hover:text-green-600 transition">Support</Link>
       </div>
 
       {/* Right: Auth Buttons */}
       <div className="flex items-center space-x-4">
-        <button className="text-gray-700 font-medium hover:text-green-600 transition">
+        <Link
+          to="/login"
+          className="text-gray-700 font-medium hover:text-green-600 transition"
+        >
           Log In
-        </button>
-        <button className="bg-green-500 text-white px-4 py-2 rounded-full font-medium hover:bg-green-600 transition">
+        </Link>
+        <Link
+          to="/register"
+          className="bg-green-500 text-white px-4 py-2 rounded-full font-medium hover:bg-green-600 transition"
+        >
           Sign Up
-        </button>
+        </Link>
       </div>
     </nav>
   );
