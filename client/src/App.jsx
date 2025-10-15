@@ -1,11 +1,19 @@
+
+import { useState } from 'react'
+import reactLogo from './assets/react.svg'
+import viteLogo from '/vite.svg'
+import Button from './Button'
+
 import React from "react";
 import Navbar from "./components/common/navbar/navbar";
 import Footer from "./components/common/footer/footer";
 
 
+
 function App() {
   return (
     <>
+
       {/* Navbar at the top */}
       <Navbar />
 
@@ -15,6 +23,9 @@ function App() {
           Your code goes here.
         </p>
       
+        <Button onClick={() => setCount((count) => count + 1)}>
+         count is {count}
+        </Button>
       </main>
 
       {/* Footer at the bottom */}
