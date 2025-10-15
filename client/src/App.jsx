@@ -3,6 +3,7 @@ import Navbar from "./components/common/navbar/navbar";
 import Footer from "./components/common/footer/footer";
 import "./App.css";
 
+
 function App() {
   return (
     <>
