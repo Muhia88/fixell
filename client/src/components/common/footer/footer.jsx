@@ -27,7 +27,7 @@ const Footer = () => {
 
       {/* Copyright */}
       <p className="text-gray-500 text-sm">
-        © 2024 Fixell. All rights reserved.
+        © 2025 Fixell. All rights reserved.
       </p>
     </footer>
   );
