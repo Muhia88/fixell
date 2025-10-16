@@ -1,18 +1,22 @@
-
+import React, { useState } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Navbar from "./components/common/navbar/navbar";
 import Footer from "./components/common/footer/footer";
 import Login from "./Pages/Auth/Login";
 import Register from "./Pages/Auth/Register";
 import { AuthProvider } from "./components/context/ui/authContext.jsx";
+import Button from "./components/common/Button";
 
 
 function App() {
+  const [count, setCount] = useState(0);
+
   return (
     <>
       <AuthProvider>
         <BrowserRouter>
           <Navbar />
+          <Button />
           <main className="flex flex-col items-center justify-center text-center py-16 px-6">
             <Routes>
               <Route path="/login" element={<Login />} />

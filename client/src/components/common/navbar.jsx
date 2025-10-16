@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import fixellLogo from "../../../assets/logos/fixell-logo.png";
+import fixellLogo from "../../assets/logos/fixell-logo.png";
 
 const Navbar = () => {
   return (
