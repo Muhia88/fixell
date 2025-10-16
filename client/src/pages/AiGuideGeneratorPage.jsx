@@ -2,20 +2,7 @@ import React, { useState } from 'react';
 import api from '../api/axiosConfig';
 import Card from '../components/common/Card';
 import Button from '../components/common/Button';
-
-// A simple component to render Markdown content safely
-const MarkdownRenderer = ({ content }) => {
-    // Basic conversion of Markdown elements to HTML for display
-    const formattedContent = content
-        .replace(/### (.*)/g, '<h3 class="text-xl font-semibold mt-4 mb-2">$1</h3>')
-        .replace(/## (.*)/g, '<h2 class="text-2xl font-bold mt-6 mb-3">$1</h2>')
-        .replace(/\*\*(.*)\*\*/g, '<strong>$1</strong>')
-        .replace(/\* (.*)/g, '<li class="ml-5 list-disc">$1</li>')
-        .replace(/(\d+)\. (.*)/g, '<li class="ml-5" style="list-style-type: decimal;">$2</li>')
-        .replace(/\n/g, '<br />');
-
-    return <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: formattedContent }} />;
-};
+import MarkdownRenderer from '../components/common/MarkdownRenderer';
 
 const AiGuideGeneratorPage = () => {
     const [description, setDescription] = useState('');
@@ -98,6 +85,25 @@ const AiGuideGeneratorPage = () => {
                     <h2 className="text-2xl font-bold mb-4">Your Repair Guide for: "{generatedGuide.description}"</h2>
                     <hr className="mb-4"/>
                     <MarkdownRenderer content={generatedGuide.guide_content} />
+                    <div className="mt-4 flex justify-end">
+                        <Button
+                            onClick={async () => {
+                                try {
+                                    await api.post('/guides/save', {
+                                        title: generatedGuide.description?.slice(0, 100) || 'Saved guide',
+                                        description: generatedGuide.description,
+                                        guide_content: generatedGuide.guide_content,
+                                    });
+                                    alert('Guide saved successfully');
+                                } catch (e) {
+                                    console.error('Save failed', e);
+                                    alert('Failed to save guide');
+                                }
+                            }}
+                        >
+                            Save Guide
+                        </Button>
+                    </div>
                 </Card>
             )}
         </div>

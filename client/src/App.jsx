@@ -10,6 +10,7 @@ import Footer from "./components/common/Footer";
 // import AboutPage from "./pages/AboutPage";
 // import MarketplacePage from "./pages/MarketplacePage";
 import AiGuideGeneratorPage from "./pages/AiGuideGeneratorPage";
+import SavedGuidesPage from "./pages/SavedGuidesPage";
 // import SupportPage from "./pages/SupportPage";
 // import LoginPage from "./pages/LoginPage";
 // import RegisterPage from "./pages/RegisterPage";
@@ -34,6 +35,7 @@ function App() {
             <Route path="/about" element={<AboutPage />} />
             <Route path="/marketplace" element={<MarketplacePage />} /> */}
             <Route path="/generate-guide" element={<AiGuideGeneratorPage />} />
+            <Route path="/saved-guides" element={<SavedGuidesPage />} />
             {/* <Route path="/support" element={<SupportPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} /> */}

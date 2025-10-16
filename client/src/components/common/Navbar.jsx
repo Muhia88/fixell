@@ -36,6 +36,9 @@ const Navbar = () => {
         <NavLink to="/generate-guide" className={getNavLinkClass}>
           AI Guide
         </NavLink>
+        <NavLink to="/saved-guides" className={getNavLinkClass}>
+          Saved Guides
+        </NavLink>
         <NavLink to="/support" className={getNavLinkClass}>
           Support
         </NavLink>
