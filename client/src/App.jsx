@@ -30,7 +30,6 @@ function App() {
           <Footer />
         </BrowserRouter>
       </AuthProvider>
-      {/* Remove duplicate Navbar, Footer, and main content if not needed */}
     </>
   );
 }
