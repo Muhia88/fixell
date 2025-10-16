@@ -1,34 +1,41 @@
 import React, { useState } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Navbar from "./components/common/navbar/navbar";
-import Footer from "./components/common/footer/footer";
-import Login from "./Pages/Auth/Login";
-import Register from "./Pages/Auth/Register";
+import Navbar from "./components/common/navbar.jsx";
+import Footer from "./components/common/footer.jsx";
+import Button from "./components/common/Button.jsx";
+import LoginPage from "./pages/LoginPage.jsx";
+import RegisterPage from "./pages/RegisterPage.jsx";
 import { AuthProvider } from "./components/context/ui/authContext.jsx";
-import Button from "./components/common/Button";
 
 
 function App() {
   const [count, setCount] = useState(0);
 
+
   return (
     <>
+      {/* AuthProvider wraps the entire application to provide context */}
       <AuthProvider>
         <BrowserRouter>
           <Navbar />
-          <Button />
-          <main className="flex flex-col items-center justify-center text-center py-16 px-6">
+          <Button onClick={() => setCount(c => c + 1)}>
+            Example Count: {count}
+          </Button>
+          <main className="flex flex-col items-center justify-center text-center py-16 px-6 min-h-[80vh]">
             <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route
-                path="/"
+              {/* Public Routes */}
+              <Route 
+                path="/" 
                 element={
-                  <p className="text-gray-600 max-w-xl mb-8">
-                    Your code goes here.
-                  </p>
+                  <h1 className="text-3xl font-bold text-gray-800">
+                    Welcome to the Landing Page!
+                  </h1>
                 }
               />
+              {/* Authentication Routes */}
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+              
             </Routes>
           </main>
           <Footer />
