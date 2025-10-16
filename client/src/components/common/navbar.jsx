@@ -1,5 +1,5 @@
 import React from "react";
-import fixellLogo from "../../../assets/logos/fixell-logo.png";
+import fixellLogo from "../../assets/logos/fixell-logo.png";
 
 
 const Navbar = () => {

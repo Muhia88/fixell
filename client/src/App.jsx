@@ -1,16 +1,14 @@
 
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import Button from './Button'
-
-import React from "react";
-import Navbar from "./components/common/navbar/navbar";
-import Footer from "./components/common/footer/footer";
+import React, { useState } from "react";
+import Button from "./components/common/Button";
+import Navbar from "./components/common/navbar";
+import Footer from "./components/common/footer";
 
 
 
 function App() {
+  const [count, setCount] = useState(0);
+
   return (
     <>
 
