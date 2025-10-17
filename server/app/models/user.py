@@ -1,46 +1,39 @@
-from datetime import datetime
-from app.__init__ import db # Import the shared db object
+from app import db # Assuming 'db' is initialized in server/app/__init__.py
 from werkzeug.security import generate_password_hash, check_password_hash
-
+from datetime import datetime
 
 class User(db.Model):
-    """
-    User model incorporating secure password hashing using werkzeug.security.
-    The password is NEVER stored in plain text.
-    """
     __tablename__ = 'users'
 
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
-    
-    # Field to store the securely generated password hash.
-    password_hash = db.Column(db.String(128), nullable=False)
-    
+    email = db.Column(db.String(120), unique=True, nullable=False, index=True)
+    password_hash = db.Column(db.String(256), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    def __init__(self, username, email, password):
-        """Constructor that automatically hashes the password upon object creation."""
-        self.username = username
+    # Relationships (Optional, but good for structure)
+    listings = db.relationship('Listing', backref='author', lazy='dynamic')
+    repair_guides = db.relationship('RepairGuide', backref='author', lazy='dynamic')
+
+    def __init__(self, email, password):
         self.email = email
         self.set_password(password)
 
     def set_password(self, password):
-        """Generates a secure hash for the given plaintext password."""
+        """Hashes the password and stores the hash."""
+        # Note: Werkzeug's security module uses bcrypt by default, which is good practice.
         self.password_hash = generate_password_hash(password)
 
     def check_password(self, password):
-        """Compares a plaintext password against the stored hash securely."""
+        """Checks the stored password hash against the provided password."""
         return check_password_hash(self.password_hash, password)
 
     def to_dict(self):
-        """Returns a dictionary representation of the user (excluding the hash)."""
         return {
             'id': self.id,
-            'username': self.username,
             'email': self.email,
-            'created_at': self.created_at.isoformat() if self.created_at else None, 
+            'created_at': self.created_at.isoformat()
         }
 
     def __repr__(self):
-        return f"<User(id={self.id}, username='{self.username}', email='{self.email}')>"
+        return f'<User {self.email}>'
+
