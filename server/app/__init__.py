@@ -17,8 +17,6 @@ def create_app(config_class=Config):
 
     db.init_app(app)
 
-    from app.routes.main_routes import main_bp
-    app.register_blueprint(main_bp)
 
     @app.route('/test')
     def test_page():
