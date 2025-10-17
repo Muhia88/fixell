@@ -1,8 +1,6 @@
-import React, { createContext, useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import authService from './authService';
-
-// 1. Create the Context
-export const AuthContext = createContext();
+import { AuthContext } from './authContextValue';
 
 // 2. Create the Provider Component
 export const AuthProvider = ({ children }) => {
@@ -35,12 +33,19 @@ export const AuthProvider = ({ children }) => {
     };
 
     // Function to handle registration (no need to store token here, login required after register)
-    const handleRegister = async (email, password) => {
+    const handleRegister = async (email, password, name) => {
         setLoading(true);
         try {
-            const data = await authService.register(email, password);
+            // Call register endpoint with name
+            await authService.register(email, password, name);
+            // On successful registration, immediately log the user in
+            const loginData = await authService.login(email, password);
+            if (loginData) {
+                setUser(loginData.user);
+                setToken(loginData.token);
+            }
             setLoading(false);
-            return data;
+            return loginData;
         } catch (error) {
             setLoading(false);
             throw error;

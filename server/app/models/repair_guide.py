@@ -6,6 +6,8 @@ class RepairGuide(db.Model):
 	__tablename__ = 'repair_guides'
 
 	id = db.Column(db.Integer, primary_key=True)
+	# FK linking repair guide to its author (User)
+	user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
 	title = db.Column(db.String(200), nullable=False)
 	content = db.Column(db.Text, nullable=True)
 	created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -13,6 +15,7 @@ class RepairGuide(db.Model):
 	def to_dict(self):
 		return {
 			'id': self.id,
+			'user_id': self.user_id,
 			'title': self.title,
 			'content': self.content,
 			'created_at': self.created_at.isoformat() if self.created_at else None,

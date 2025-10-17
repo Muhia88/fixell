@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Navbar from "./components/common/navbar.jsx";
+import Navbar from "./components/common/Navbar.jsx";
 import Footer from "./components/common/footer.jsx";
 import Button from "./components/common/Button.jsx";
 import LoginPage from "./pages/LoginPage.jsx";

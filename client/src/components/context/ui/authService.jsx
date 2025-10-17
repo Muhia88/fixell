@@ -1,8 +1,8 @@
 import api from '../../../api/axiosConfig';
 
-const register = (email, password) => {
+const register = (email, password, name) => {
     // Calls the /api/auth/register endpoint
-    return api.post('/auth/register', { email, password }); 
+    return api.post('/auth/register', { email, password, name }); 
 };
 
 const login = (email, password) => {
@@ -12,7 +12,9 @@ const login = (email, password) => {
             if (response.data.token) {
                 // Store the JWT token and user info on successful login
                 localStorage.setItem('authToken', response.data.token);
-                localStorage.setItem('user', JSON.stringify(response.data.user));
+                    // ensure name is present in stored user
+                    const user = response.data.user || {};
+                    localStorage.setItem('user', JSON.stringify(user));
             }
             return response.data;
         });

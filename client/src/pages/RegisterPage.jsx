@@ -6,6 +6,7 @@ import Button from '../components/common/Button';
 
 const RegisterPage = () => {
     const [email, setEmail] = useState('');
+    const [name, setName] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [error, setError] = useState('');
@@ -15,6 +16,10 @@ const RegisterPage = () => {
     const navigate = useNavigate();
 
     const validateForm = () => {
+        if (!name || name.trim().length < 2) {
+            setError('Please enter a valid name (at least 2 characters).');
+            return false;
+        }
         if (!email.includes('@') || !email.includes('.')) {
             setError('Please enter a valid email address.');
             return false;
@@ -38,9 +43,9 @@ const RegisterPage = () => {
         setSuccessMessage('');
 
         try {
-            await register(email, password);
-            setSuccessMessage('Registration successful! Redirecting to login...');
-            setTimeout(() => navigate('/login'), 1500);
+            await register(email, password, name);
+            setSuccessMessage('Registration successful! Redirecting to home...');
+            setTimeout(() => navigate('/'), 800);
         } catch (err) {
             const errorMessage = err.response?.data?.message || 'Registration failed. Please try again.';
             setError(errorMessage);
@@ -95,6 +100,18 @@ const RegisterPage = () => {
                                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150"
                                 />
                             </div>
+
+                                <div>
+                                    <Input
+                                        label="Full Name"
+                                        type="text"
+                                        value={name}
+                                        onChange={(e) => setName(e.target.value)}
+                                        placeholder="e.g., Jane Doe"
+                                        required
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150"
+                                    />
+                                </div>
 
                             <div>
                                 <Input

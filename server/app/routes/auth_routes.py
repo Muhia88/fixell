@@ -12,6 +12,7 @@ def register():
     data = request.get_json()
     email = data.get('email')
     password = data.get('password')
+    name = data.get('name')
 
     if not email or not password:
         return jsonify({'message': 'Email and password are required'}), 400
@@ -20,7 +21,7 @@ def register():
         return jsonify({'message': 'User with that email already exists'}), 409
 
     # 1. Create a new User instance (password is automatically hashed)
-    new_user = User(email=email, password=password)
+    new_user = User(email=email, password=password, name=name)
 
     try:
         # 2. Add to database and commit

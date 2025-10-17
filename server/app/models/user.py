@@ -1,5 +1,5 @@
 from app import db # Assuming 'db' is initialized in server/app/__init__.py
-from werkzeug.security import generate_password_hash, check_password_hash
+import bcrypt
 from datetime import datetime
 
 class User(db.Model):
@@ -7,6 +7,8 @@ class User(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True, nullable=False, index=True)
+    # Optional display name for the user
+    name = db.Column(db.String(120), nullable=True)
     password_hash = db.Column(db.String(256), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -14,23 +16,33 @@ class User(db.Model):
     listings = db.relationship('Listing', backref='author', lazy='dynamic')
     repair_guides = db.relationship('RepairGuide', backref='author', lazy='dynamic')
 
-    def __init__(self, email, password):
+    def __init__(self, email, password, name=None):
         self.email = email
+        self.name = name
         self.set_password(password)
 
     def set_password(self, password):
         """Hashes the password and stores the hash."""
-        # Note: Werkzeug's security module uses bcrypt by default, which is good practice.
-        self.password_hash = generate_password_hash(password)
+        # bcrypt expects bytes; store the salted hash as a utf-8 string
+        if isinstance(password, str):
+            password = password.encode('utf-8')
+        salt = bcrypt.gensalt()
+        hashed = bcrypt.hashpw(password, salt)
+        # store as decoded string for DB compatibility
+        self.password_hash = hashed.decode('utf-8')
 
     def check_password(self, password):
         """Checks the stored password hash against the provided password."""
-        return check_password_hash(self.password_hash, password)
+        if isinstance(password, str):
+            password = password.encode('utf-8')
+        stored = self.password_hash.encode('utf-8')
+        return bcrypt.checkpw(password, stored)
 
     def to_dict(self):
         return {
             'id': self.id,
             'email': self.email,
+            'name': self.name,
             'created_at': self.created_at.isoformat()
         }
 
