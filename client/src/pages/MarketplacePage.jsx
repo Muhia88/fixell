@@ -1,6 +1,4 @@
 import React, { useState } from "react";
-import Navbar from "../components/common/navbar";
-import Footer from "../components/common/footer";
 import ListingCard from "../components/marketplace/ListingCard";
 import FilterSidebar from "../components/marketplace/FilterSidebar";
 
@@ -66,7 +64,6 @@ const Marketplace = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
-      <Navbar />
 
       {/* Page Header */}
       <div className="flex flex-col items-center justify-center py-10 bg-gradient-to-r from-green-600 to-lime-500 text-white">
@@ -126,7 +123,6 @@ const Marketplace = () => {
         </div>
       </div>
 
-      <Footer />
     </div>
   );
 };

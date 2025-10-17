@@ -3,6 +3,7 @@ import api from '../api/axiosConfig';
 import Card from '../components/common/Card';
 import Button from '../components/common/Button';
 import MarkdownRenderer from '../components/common/MarkdownRenderer';
+import Modal from '../components/common/modal';
 
 const AiGuideGeneratorPage = () => {
     const [description, setDescription] = useState('');
@@ -17,11 +18,7 @@ const AiGuideGeneratorPage = () => {
         setGeneratedGuide(null);
 
         try {
-            // For local UI testing we call the dev endpoint which does not require auth
-            // This endpoint returns { guide: '...' } while the protected endpoint
-            // returns { id, description, guide_content }.
             const response = await api.post('/guides/generate_dev', { description });
-            // Normalize both response shapes into a single object for UI
             const data = response.data;
             if (data.guide) {
                 setGeneratedGuide({ description, guide_content: data.guide });
@@ -36,6 +33,30 @@ const AiGuideGeneratorPage = () => {
             setIsLoading(false);
         }
     };
+
+    const handleCopy = async (text) => {
+        try {
+            await navigator.clipboard.writeText(text);
+            alert('Guide copied to clipboard');
+        } catch (e) {
+            console.error('Copy failed', e);
+            alert('Copy failed');
+        }
+    };
+
+    const handleDownload = (title, content) => {
+        const blob = new Blob([content], { type: 'text/markdown;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+    a.download = (title || 'repair-guide').replace(/[^a-z0-9-]/gi, '_') + '.md';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+    };
+
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
     return (
         <div className="container mx-auto px-4 py-10">
@@ -67,7 +88,6 @@ const AiGuideGeneratorPage = () => {
             {isLoading && (
                 <div className="text-center mt-8">
                     <p className="text-lg text-gray-700">Please wait, our AI is crafting your guide...</p>
-                    {/* You can add a spinner here */}
                 </div>
             )}
 
@@ -81,30 +101,73 @@ const AiGuideGeneratorPage = () => {
 
             {/* Success State */}
             {generatedGuide && (
-                <Card className="max-w-4xl mx-auto mt-8">
-                    <h2 className="text-2xl font-bold mb-4">Your Repair Guide for: "{generatedGuide.description}"</h2>
-                    <hr className="mb-4"/>
-                    <MarkdownRenderer content={generatedGuide.guide_content} />
-                    <div className="mt-4 flex justify-end">
-                        <Button
-                            onClick={async () => {
-                                try {
-                                    await api.post('/guides/save', {
-                                        title: generatedGuide.description?.slice(0, 100) || 'Saved guide',
-                                        description: generatedGuide.description,
-                                        guide_content: generatedGuide.guide_content,
-                                    });
-                                    alert('Guide saved successfully');
-                                } catch (e) {
-                                    console.error('Save failed', e);
-                                    alert('Failed to save guide');
-                                }
-                            }}
-                        >
-                            Save Guide
-                        </Button>
-                    </div>
-                </Card>
+                <>
+                    <Card className="max-w-4xl mx-auto mt-8">
+                        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                            <div className="flex-1">
+                                <h2 className="text-2xl font-bold">Your Repair Guide</h2>
+                                <p className="text-sm text-gray-500 mt-1">For: <span className="font-medium">{generatedGuide.description}</span></p>
+                                <div className="mt-4">
+                                    <div className="bg-white/80 rounded-lg p-4 shadow-sm max-h-60 overflow-y-auto">
+                                        <div className="prose prose-sm lg:prose-lg max-w-none text-gray-800">
+                                            <MarkdownRenderer content={generatedGuide.guide_content} />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="w-full md:w-64 flex-shrink-0">
+                                <div className="sticky top-6 flex flex-col gap-3">
+                                    <Button
+                                        onClick={() => setIsModalOpen(true)}
+                                        className="w-full"
+                                        variant="primary"
+                                    >
+                                        View Full
+                                    </Button>
+
+                                    <Button
+                                        onClick={async () => {
+                                            try {
+                                                await api.post('/guides/save', {
+                                                    title: generatedGuide.description?.slice(0, 100) || 'Saved guide',
+                                                    description: generatedGuide.description,
+                                                    guide_content: generatedGuide.guide_content,
+                                                });
+                                                alert('Guide saved successfully');
+                                            } catch (e) {
+                                                console.error('Save failed', e);
+                                                alert('Failed to save guide');
+                                            }
+                                        }}
+                                        className="w-full"
+                                        variant="secondary"
+                                    >
+                                        Save Guide
+                                    </Button>
+
+                                    <Button onClick={() => handleCopy(generatedGuide.guide_content)} className="w-full" variant="outline">
+                                        Copy
+                                    </Button>
+
+                                    <Button onClick={() => handleDownload(generatedGuide.description, generatedGuide.guide_content)} className="w-full" variant="outline">
+                                        Download
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    </Card>
+
+                    <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={generatedGuide.description}>
+                        <div className="max-h-[60vh] overflow-y-auto">
+                            <div className="bg-white rounded-lg p-6 shadow-sm">
+                                <div className="prose prose-lg max-w-none text-gray-800">
+                                    <MarkdownRenderer content={generatedGuide.guide_content} />
+                                </div>
+                            </div>
+                        </div>
+                    </Modal>
+                </>
             )}
         </div>
     );

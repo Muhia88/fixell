@@ -40,10 +40,13 @@ export const AuthProvider = ({ children }) => {
             await authService.register(email, password, name);
             // On successful registration, immediately log the user in
             const loginData = await authService.login(email, password);
-            if (loginData) {
-                setUser(loginData.user);
-                setToken(loginData.token);
+            // Ensure auto-login succeeded and returned a token
+            if (!loginData || !loginData.token) {
+                // Treat this as an error so caller UI doesn't redirect blindly
+                throw new Error('Registration succeeded but auto-login failed');
             }
+            setUser(loginData.user);
+            setToken(loginData.token);
             setLoading(false);
             return loginData;
         } catch (error) {

@@ -43,3 +43,20 @@ def save_guide():
 def list_saved_guides():
     guides = SavedGuide.query.order_by(SavedGuide.created_at.desc()).all()
     return jsonify([g.to_dict() for g in guides]), 200
+
+
+@guide_bp.route('/<int:guide_id>', methods=['DELETE'])
+def delete_saved_guide(guide_id):
+    """Delete a saved guide by id."""
+    try:
+        guide = SavedGuide.query.get(guide_id)
+        if not guide:
+            return jsonify({'msg': 'Guide not found'}), 404
+        db.session.delete(guide)
+        db.session.commit()
+        # No content response on successful delete
+        return '', 204
+    except Exception as e:
+        current_app.logger.error(f"Failed to delete saved guide {guide_id}: {e}")
+        db.session.rollback()
+        return jsonify({'msg': 'Failed to delete guide'}), 500
