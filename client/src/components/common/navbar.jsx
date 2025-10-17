@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from 'react-router-dom'
 import fixellLogo from "../../assets/logos/fixell-logo.png";
 
 
@@ -17,10 +18,10 @@ const Navbar = () => {
 
       {/* Center: Navigation Links */}
       <div className="hidden md:flex space-x-8 text-gray-700 font-medium">
-        <a href="#" className="hover:text-green-600 transition">Home</a>
-        <a href="#" className="hover:text-green-600 transition">About</a>
-        <a href="#" className="hover:text-green-600 transition">Marketplace</a>
-        <a href="#" className="hover:text-green-600 transition">Support</a>
+        <Link to="/" className="hover:text-green-600 transition">Home</Link>
+        <Link to="/about" className="hover:text-green-600 transition">About</Link>
+  <Link to="/marketplace" className="hover:text-green-600 transition">Marketplace</Link>
+        <Link to="/support" className="hover:text-green-600 transition">Support</Link>
       </div>
 
       {/* Right: Auth Buttons */}
