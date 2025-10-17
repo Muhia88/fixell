@@ -5,6 +5,10 @@ import Footer from "./components/common/footer.jsx";
 import Button from "./components/common/Button.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import RegisterPage from "./pages/RegisterPage.jsx";
+import LandingPage from './pages/LandingPage';
+import Marketplace from './pages/MarketplacePage';
+import AiGuideGeneratorPage from "./pages/AiGuideGeneratorPage";
+import SavedGuidesPage from "./pages/SavedGuidesPage";
 import { AuthProvider } from "./components/context/ui/authContext.jsx";
 
 
@@ -35,6 +39,10 @@ function App() {
               {/* Authentication Routes */}
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/marketplace" element={<Marketplace />} />
+              <Route path="/generate-guide" element={<AiGuideGeneratorPage />} />
+              <Route path="/saved-guides" element={<SavedGuidesPage />} />
               
             </Routes>
           </main>
@@ -43,6 +51,5 @@ function App() {
       </AuthProvider>
     </>
   );
-}
 
-export default App;
+export default App
