@@ -1,30 +1,24 @@
 import axios from 'axios';
 
+// Create an Axios instance
 const api = axios.create({
+  // **IMPORTANT**: Update this to your actual backend URL
   baseURL: 'http://127.0.0.1:5000/api', 
+  headers: {
+    'Content-Type': 'application/json',
+  },
 });
 
-/**
- * Axios Request Interceptor
- * * This function is attached to the Axios instance and will run BEFORE every
- * single request is sent. Its purpose is to check if an authentication token
- * exists in localStorage and, if it does, add it to the request's Authorization header.
- * This is how your backend will identify and authenticate the logged-in user.
- */
+// Optional: Interceptor to attach the JWT token to requests
 api.interceptors.request.use(
   (config) => {
-    // Retrieve the token from local storage
-    const token = localStorage.getItem('accessToken');
-    
-    // If the token exists, add it to the Authorization header
+    const token = localStorage.getItem('authToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    
     return config;
   },
   (error) => {
-    // Handle any errors during the request setup
     return Promise.reject(error);
   }
 );

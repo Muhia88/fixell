@@ -8,11 +8,15 @@ flask = "*"
 flask-cors = "*"
 python-dotenv = "*"
 flask-sqlalchemy = "*"
+werkzeug = "*"
+pyjwt = "*"
+bcrypt = "*"
 flask-migrate = "*"
 flask-bcrypt = "*"
 flask-jwt-extended = "*"
 google-generativeai = "*"
 psycopg2-binary = "*"
+
 
 [dev-packages]
 
