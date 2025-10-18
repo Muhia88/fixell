@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, current_app
 from app.models.user import User
-from app import db # Assuming 'db' is initialized
+from app import db  # Assuming 'db' is initialized
 import jwt
 import datetime
 
@@ -20,11 +20,13 @@ def register():
     if User.query.filter_by(email=email).first():
         return jsonify({'message': 'User with that email already exists'}), 409
 
-    # 1. Create a new User instance (password is automatically hashed)
-    new_user = User(email=email, password=password, name=name)
+    # Create a new User instance without passing plaintext password to the constructor
+    new_user = User(email=email, name=name)
+    # Hash and set the password using the model helper
+    new_user.set_password(password)
 
     try:
-        # 2. Add to database and commit
+        # Add to database and commit
         db.session.add(new_user)
         db.session.commit()
         return jsonify({
@@ -60,9 +62,9 @@ def login():
              
         token_payload = {
             'user_id': user.id,
-            # Token expiration set to 24 hours
-            'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=24), 
-            'iat': datetime.datetime.utcnow()
+            # Token expiration set to 24 hours (timezone-aware UTC)
+            'exp': datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=24), 
+            'iat': datetime.datetime.now(datetime.timezone.utc)
         }
         
         jwt_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
@@ -76,4 +78,67 @@ def login():
     else:
         # Authentication failed
         return jsonify({'message': 'Invalid email or password'}), 401
+    
 
+@auth_bp.route('/profile', methods=['GET', 'PUT'])
+def profile():
+    """
+    Handles GET (fetch profile) and PUT (update profile) requests.
+    Requires Authorization: Bearer <token>
+    """
+    auth_header = request.headers.get('Authorization', '')
+    token = None
+    if auth_header.startswith('Bearer '):
+        token = auth_header.split(' ', 1)[1].strip()
+    elif auth_header:
+        # tolerate bare token as well
+        token = auth_header.strip()
+
+    if not token:
+        return jsonify({'message': 'Missing authorization token'}), 401
+
+    secret_key = current_app.config.get('SECRET_KEY')
+    if not secret_key:
+        return jsonify({'message': 'Server misconfigured: SECRET_KEY not set'}), 500
+
+    try:
+        # Decode token and get user_id
+        payload = jwt.decode(token, secret_key, algorithms=['HS256'])
+        user_id = payload.get('user_id')
+        if not user_id:
+            return jsonify({'message': 'Invalid token payload'}), 401
+
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({'message': 'User not found'}), 404
+        
+        # --- Handle GET Request: Return Profile Data ---
+        if request.method == 'GET':
+            return jsonify({'user': user.to_dict()}), 200
+
+        # --- Handle PUT Request: Update Profile Data ---
+        elif request.method == 'PUT':
+            data = request.get_json()
+            new_name = data.get('name')
+
+            if not new_name:
+                return jsonify({'message': 'Name field is required for update'}), 400
+
+            # Update user's name
+            user.name = new_name
+            db.session.commit()
+            
+            return jsonify({
+                'message': 'Profile updated successfully',
+                'user': user.to_dict()
+            }), 200
+
+
+    except jwt.ExpiredSignatureError:
+        return jsonify({'message': 'Token has expired'}), 401
+    except jwt.InvalidTokenError:
+        return jsonify({'message': 'Invalid token'}), 401
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Profile operation error: {e}")
+        return jsonify({'message': 'An error occurred during profile operation'}), 500
