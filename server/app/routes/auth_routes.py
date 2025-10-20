@@ -4,7 +4,7 @@ from app import db  # Assuming 'db' is initialized
 import jwt
 import datetime
 
-auth_bp = Blueprint('auth', __name__, url_prefix='/api/auth')
+auth_bp = Blueprint('auth', __name__)
 
 @auth_bp.route('/register', methods=['POST'])
 def register():

@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request
 from app.models.listing import Listing
 
-user_bp = Blueprint("user_bp", __name__, url_prefix="/api/users")
+user_bp = Blueprint("user_bp", __name__)
 
 
 @user_bp.route('/<int:user_id>/listings', methods=['GET'])

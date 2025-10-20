@@ -3,6 +3,7 @@ import os
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from config import Config 
+from flask_migrate import Migrate
 
 db = SQLAlchemy()
 
@@ -15,9 +16,25 @@ def create_app(config_class=Config):
     
     app.config.from_object(config_class)
 
-    CORS(app, resources={r"/api/*": {"origins": "*"}}, supports_credentials=True)
+    # Enable CORS for all API routes. Allow common methods and headers used by the frontend
+    CORS(app,
+         resources={r"/api/*": {"origins": "*"}},
+         supports_credentials=True,
+         allow_headers=["Content-Type", "Authorization", "X-Requested-With", "Accept"],
+         methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"])
+
+    # Ensure OPTIONS preflight requests always return HTTP 200 with CORS headers
+    @app.after_request
+    def _add_cors_headers(response):
+        # Flask-CORS normally sets headers, ensure they exist for any response
+        response.headers.setdefault('Access-Control-Allow-Origin', '*')
+        response.headers.setdefault('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS')
+        response.headers.setdefault('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+        return response
 
     db.init_app(app)
+    # Initialize Flask-Migrate
+    migrate = Migrate(app, db)
 
     # Note: main_routes.py is not present in this project. If you have a
     # main blueprint to register, add it here. The dynamic imports below
@@ -42,7 +59,7 @@ def create_app(config_class=Config):
 
     try:
         from app.routes.user_routes import user_bp
-        app.register_blueprint(user_bp)
+        app.register_blueprint(user_bp, url_prefix='/api/users')
     except Exception:
         pass
 

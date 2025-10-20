@@ -42,17 +42,27 @@ export default function MyListingsPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="min-h-screen w-full flex flex-col bg-gray-50">
       <div className="flex flex-col items-center justify-center py-10 bg-gradient-to-r from-green-600 to-lime-500 text-white">
         <h1 className="text-3xl font-bold mb-3">My Listings</h1>
         <p className="text-sm opacity-90">Manage the items you've listed</p>
       </div>
 
-      <div className="container mx-auto px-4 py-6">
+  <div className="flex-1 w-full px-4 md:px-8 py-6 flex flex-col">
         {loading ? (
-          <p>Loading...</p>
+          <div className="flex-1 flex items-center justify-center">
+            <p className="text-gray-600">Loading...</p>
+          </div>
         ) : listings.length === 0 ? (
-          <p className="text-center">You have no listings yet.</p>
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center p-8 bg-white rounded-lg shadow">
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">You have no listings yet.</h3>
+              <p className="text-sm text-gray-500 mb-4">Create a listing to start selling your items.</p>
+              <div className="flex justify-center">
+                <button onClick={() => navigate('/create-listing')} className="px-4 py-2 bg-green-600 text-white rounded-md">Create Listing</button>
+              </div>
+            </div>
+          </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
             {listings.map(l => (

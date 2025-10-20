@@ -10,7 +10,7 @@ from jwt import ExpiredSignatureError, InvalidTokenError
 from flask import g
 from app.utils.auth import login_required
 
-listing_bp = Blueprint("listing_bp", __name__, url_prefix="/api/listings")
+listing_bp = Blueprint("listing_bp", __name__)
 
 @listing_bp.route("/", methods=["GET"])
 def get_listings():
@@ -78,20 +78,25 @@ def create_listing():
             return jsonify({'success': False, 'message': 'price must be a number'}), 400
 
         images_saved = []
-        upload_folder = os.path.join(current_app.instance_path, 'uploads')
-        os.makedirs(upload_folder, exist_ok=True)
-
         files = request.files.getlist('images')
+        from app.services.supabase_service import upload_file, public_url
         for fh in files:
             if fh and fh.filename:
                 filename = secure_filename(fh.filename)
-                # prefix with uuid to avoid collisions
                 unique_name = f"{uuid.uuid4().hex}_{filename}"
-                dest_path = os.path.join(upload_folder, unique_name)
-                fh.save(dest_path)
-                # store a client-friendly URL path for later serving
-                rel_path = f"/uploads/{unique_name}"
-                images_saved.append(rel_path)
+                # Use a folder per user for organization
+                auth_user_id = getattr(g, 'current_user_id', 'anon')
+                dest_path = f"uploads/{auth_user_id}/{unique_name}"
+                # read file bytes
+                fh.stream.seek(0)
+                data = fh.read()
+                # upload to supabase storage
+                try:
+                    pub = upload_file(data, dest_path, content_type=fh.mimetype)
+                except Exception as e:
+                    current_app.logger.error('Supabase upload failed: %s', e)
+                    raise
+                images_saved.append(pub)
 
         listing = Listing(
             title=title,
@@ -156,32 +161,42 @@ def update_listing(listing_id):
             if remove_images:
                 current_imgs = listing.images or []
                 remaining = [img for img in current_imgs if img not in remove_images]
-                # delete files for removed images
-                upload_folder = os.path.join(current_app.instance_path, 'uploads')
+                # delete files for removed images (handle both supabase urls and local paths)
+                from app.services.supabase_service import delete_file_by_url
                 for img in remove_images:
-                    if isinstance(img, str) and img.startswith('/uploads/'):
-                        fname = img.split('/uploads/', 1)[1]
-                        fp = os.path.join(upload_folder, fname)
-                        try:
+                    try:
+                        if isinstance(img, str) and img.startswith('/uploads/'):
+                            # local file path - delete from instance uploads
+                            upload_folder = os.path.join(current_app.instance_path, 'uploads')
+                            fname = img.split('/uploads/', 1)[1]
+                            fp = os.path.join(upload_folder, fname)
                             if os.path.exists(fp):
                                 os.remove(fp)
-                        except Exception as e:
-                            print('Warning: failed to remove file', fp, e)
+                        elif isinstance(img, str) and img.startswith('http'):
+                            # supabase hosted image
+                            delete_file_by_url(img)
+                    except Exception as e:
+                        current_app.logger.warning('Failed to delete image %s: %s', img, e)
                 listing.images = remaining
 
             # handle new uploaded files
             if files:
-                upload_folder = os.path.join(current_app.instance_path, 'uploads')
-                os.makedirs(upload_folder, exist_ok=True)
+                from app.services.supabase_service import upload_file
                 for fh in files:
                     if fh and fh.filename:
                         filename = secure_filename(fh.filename)
                         unique_name = f"{uuid.uuid4().hex}_{filename}"
-                        dest_path = os.path.join(upload_folder, unique_name)
-                        fh.save(dest_path)
-                        rel_path = f"/uploads/{unique_name}"
+                        auth_user_id = getattr(g, 'current_user_id', 'anon')
+                        dest_path = f"uploads/{auth_user_id}/{unique_name}"
+                        fh.stream.seek(0)
+                        data = fh.read()
+                        try:
+                            pub = upload_file(data, dest_path, content_type=fh.mimetype)
+                        except Exception as e:
+                            current_app.logger.error('Supabase upload failed: %s', e)
+                            raise
                         imgs = listing.images or []
-                        imgs.append(rel_path)
+                        imgs.append(pub)
                         listing.images = imgs
 
         else:
@@ -225,18 +240,19 @@ def delete_listing(listing_id):
         if listing.user_id != getattr(g, 'current_user_id', None):
             return jsonify({'success': False, 'message': 'Forbidden'}), 403
 
-        # delete image files associated with listing
-        upload_folder = os.path.join(current_app.instance_path, 'uploads')
+        # delete image files associated with listing (Supabase or local)
+        from app.services.supabase_service import delete_file_by_url
         for img in listing.images or []:
-            # images are stored as /uploads/<filename>
-            if isinstance(img, str) and img.startswith('/uploads/'):
-                fname = img.split('/uploads/', 1)[1]
-                try:
-                    fp = os.path.join(upload_folder, fname)
+            try:
+                if isinstance(img, str) and img.startswith('/uploads/'):
+                    fname = img.split('/uploads/', 1)[1]
+                    fp = os.path.join(current_app.instance_path, 'uploads', fname)
                     if os.path.exists(fp):
                         os.remove(fp)
-                except Exception as e:
-                    print('Warning: failed to remove file', fp, e)
+                elif isinstance(img, str) and img.startswith('http'):
+                    delete_file_by_url(img)
+            except Exception as e:
+                current_app.logger.warning('Failed to delete image for listing %s: %s', img, e)
 
         db.session.delete(listing)
         db.session.commit()

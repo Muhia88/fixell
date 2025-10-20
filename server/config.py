@@ -13,14 +13,11 @@ class Config:
     """
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'a-default-secret-key-for-dev'
     
+    # Require DATABASE_URL (Postgres) in production. Using Supabase Postgres is expected.
     _db_url = os.environ.get('DATABASE_URL')
-    if _db_url and _db_url.startswith('sqlite:///'):
-        rel = _db_url.replace('sqlite:///', '', 1)
-        if not os.path.isabs(rel):
-            rel = os.path.join(basedir, rel)
-        SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.abspath(rel)
-    else:
-        SQLALCHEMY_DATABASE_URI = _db_url or 'sqlite:///' + os.path.join(basedir, 'app.db')
+    if not _db_url:
+        raise RuntimeError('DATABASE_URL must be set in environment (e.g. in .env.local)')
+    SQLALCHEMY_DATABASE_URI = _db_url
     
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     

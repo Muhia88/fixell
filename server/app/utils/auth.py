@@ -7,6 +7,9 @@ from jwt import ExpiredSignatureError, InvalidTokenError
 def login_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
+        # Allow preflight OPTIONS requests to pass without authentication
+        if request.method == 'OPTIONS':
+            return ('', 200)
         auth_header = request.headers.get('Authorization', '')
         if not auth_header.startswith('Bearer '):
             return jsonify({'success': False, 'message': 'Authorization header missing or malformed'}), 401

@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
 
-support_bp = Blueprint('support', __name__, url_prefix='/support')
+support_bp = Blueprint('support', __name__)
 
 @support_bp.route('/', methods=['GET'])
 def list_tickets():

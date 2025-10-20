@@ -37,7 +37,7 @@ const Marketplace = () => {
   });
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="min-h-screen w-full flex flex-col bg-gray-50">
 
       {/* Page Header */}
       <div className="flex flex-col items-center justify-center py-10 bg-gradient-to-r from-green-600 to-lime-500 text-white">
@@ -46,7 +46,7 @@ const Marketplace = () => {
       </div>
 
       {/* Search and Filter Section */}
-      <div className="relative container mx-auto px-4 py-6">
+  <div className="relative w-full px-4 md:px-8 py-6 flex-1 flex flex-col">
         <div className="flex items-center justify-between mb-4">
           {/* Search bar */}
           <input
@@ -98,16 +98,21 @@ const Marketplace = () => {
           </div>
         )}
 
-        {/* Listings Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-6 mt-4">
+        {/* Listings Grid (fills remaining vertical space) */}
+        <div className="flex-1 mt-4">
           {filteredListings.length > 0 ? (
-            filteredListings.map((listing) => (
-              <ListingCard key={listing.id} listing={listing} />
-            ))
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+              {filteredListings.map((listing) => (
+                <ListingCard key={listing.id} listing={listing} />
+              ))}
+            </div>
           ) : (
-            <p className="text-gray-500 text-center col-span-full py-10">
-              No items match your search or filters.
-            </p>
+            <div className="flex-1 flex items-center justify-center">
+              <div className="text-center px-6 py-10">
+                <h3 className="text-xl font-semibold text-gray-700 mb-2">No items match your search or filters.</h3>
+                <p className="text-sm text-gray-500">Try clearing filters or create a new listing to get started.</p>
+              </div>
+            </div>
           )}
         </div>
       </div>
