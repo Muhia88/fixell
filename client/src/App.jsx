@@ -5,6 +5,8 @@ import Footer from "./components/common/Footer.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import RegisterPage from "./pages/RegisterPage.jsx";
 import LandingPage from './pages/LandingPage';
+import ProfilePage from "./pages/ProfilePage.jsx";  
+import ProtectedRoute from './components/common/ProtectedRoute.jsx';
 import Marketplace from './pages/MarketplacePage';
 import Support from './pages/SupportPage';
 import AiGuideGeneratorPage from "./pages/AiGuideGeneratorPage";
@@ -22,6 +24,11 @@ function App() {
               {/* Authentication Routes */}
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
+              <Route path="/profile" element={
+                <ProtectedRoute>
+                  <ProfilePage />
+                </ProtectedRoute>
+              } />
 
               {/* Public Routes */}
               <Route path="/" element={<LandingPage />} />
