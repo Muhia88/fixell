@@ -1,5 +1,6 @@
 import os
 from flask import current_app
+from typing import Optional, List, Dict
 
 # Try to import the optional Google Generative AI SDK. If it's not available
 # (for local/dev testing), fall back to a lightweight placeholder generator.
@@ -101,3 +102,4 @@ def generate_repair_guide_content(item_description: str) -> str:
     except Exception as e:
         print(f"An unexpected error occurred in the AI service: {e}")
         return "Error: Could not generate the repair guide at this time. Please try again later."
+
