@@ -6,6 +6,7 @@ import LoginPage from "./pages/LoginPage.jsx";
 import RegisterPage from "./pages/RegisterPage.jsx";
 import LandingPage from './pages/LandingPage';
 import Marketplace from './pages/MarketplacePage';
+import Support from './pages/SupportPage';
 import AiGuideGeneratorPage from "./pages/AiGuideGeneratorPage";
 import SavedGuidesPage from "./pages/SavedGuidesPage";
 import { AuthProvider } from "./components/context/ui/authContext.jsx";
@@ -25,6 +26,7 @@ function App() {
               {/* Public Routes */}
               <Route path="/" element={<LandingPage />} />
               <Route path="/marketplace" element={<Marketplace />} />
+              <Route path="/support" element={<Support />} />
               <Route path="/generate-guide" element={<AiGuideGeneratorPage />} />
               <Route path="/saved-guides" element={<SavedGuidesPage />} />
             </Routes>

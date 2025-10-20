@@ -18,11 +18,9 @@ def create_app(config_class=Config):
 
     db.init_app(app)
 
-    try:
-        from app.routes.main_routes import main_bp
-        app.register_blueprint(main_bp)
-    except Exception:
-        pass
+    # Note: main_routes.py is not present in this project. If you have a
+    # main blueprint to register, add it here. The dynamic imports below
+    # will register available blueprints (auth, guides, listings, support).
     try:
         from app.routes.auth_routes import auth_bp
         app.register_blueprint(auth_bp, url_prefix='/api/auth')

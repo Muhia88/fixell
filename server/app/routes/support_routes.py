@@ -12,3 +12,4 @@ def create_ticket():
 	data = request.get_json() or {}
 	# placeholder: create ticket
 	return jsonify({'message': 'create ticket stub', 'received': data}), 201
+
