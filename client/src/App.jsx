@@ -6,6 +6,7 @@ import LoginPage from "./pages/LoginPage.jsx";
 import RegisterPage from "./pages/RegisterPage.jsx";
 import LandingPage from './pages/LandingPage';
 import ProfilePage from "./pages/ProfilePage.jsx";  
+import ProtectedRoute from './components/common/ProtectedRoute.jsx';
 import Marketplace from './pages/MarketplacePage';
 import AiGuideGeneratorPage from "./pages/AiGuideGeneratorPage";
 import SavedGuidesPage from "./pages/SavedGuidesPage";
@@ -22,7 +23,11 @@ function App() {
               {/* Authentication Routes */}
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
-              <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/profile" element={
+                <ProtectedRoute>
+                  <ProfilePage />
+                </ProtectedRoute>
+              } />
 
               {/* Public Routes */}
               <Route path="/" element={<LandingPage />} />

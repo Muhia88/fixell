@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../hooks/useAuth"; // FIX: Removed .js extension to resolve module path error
+import api from "../api/axiosConfig";
 import { useNavigate } from "react-router-dom";
 
 // Component for the Edit Form
@@ -79,28 +80,23 @@ const ProfilePage = () => {
     setUpdateError("");
 
     try {
-      const res = await fetch("/api/auth/profile", { 
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ name: newName }),
-      });
+      // Use axios client which attaches Authorization header via interceptor
+      const res = await api.put('/auth/profile', { name: newName });
 
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.message || "Failed to update profile");
-      }
-
-      const json = await res.json();
-      
       // Update local state with new user data
-      setUser(json.user || json);
+      setUser(res.data.user || res.data);
       setIsEditing(false); // Exit edit mode
 
     } catch (err) {
-      setUpdateError(err.message || "An unknown error occurred during update.");
+      // Ignore cancellation errors from axios/AbortController
+      const isCanceled = err?.code === 'ERR_CANCELED' || err?.message === 'canceled' || err?.name === 'CanceledError';
+      if (isCanceled) {
+        // do nothing — request was intentionally cancelled
+        return;
+      }
+
+      const message = err.response?.data?.message || err.message || "An unknown error occurred during update.";
+      setUpdateError(message);
       console.error("Profile update error:", err);
     } finally {
       setIsSubmitting(false);
@@ -120,31 +116,28 @@ const ProfilePage = () => {
       setLoading(true);
       setError("");
       try {
-        const res = await fetch("/api/auth/profile", { 
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          signal: controller.signal,
-        });
-
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({}));
-          throw new Error(body.message || "Failed to load profile");
+        // Use axios client so baseURL and token interceptor are used
+        const res = await api.get('/auth/profile', { signal: controller.signal });
+        // server returns { user: { ... } }
+        setUser(res.data.user || res.data);
+      } catch (err) {
+        // axios uses different shapes for cancellation errors — detect them here
+        const isCanceled = err?.code === 'ERR_CANCELED' || err?.message === 'canceled' || err?.name === 'CanceledError';
+        if (isCanceled) {
+          // ignore canceled requests (component unmounted or manual abort)
+          return;
         }
 
-        const json = await res.json();
-        // server returns { user: { ... } }
-        setUser(json.user || json);
-      } catch (err) {
-        if (err.name !== "AbortError") {
-          setError(err.message || "An error occurred");
-          if (err.message && /token|expired|invalid/i.test(err.message)) {
-            // token issues: force logout
-            logout();
-            navigate("/login");
-          }
+        // Prefer server-provided message
+        const serverMessage = err.response?.data?.message;
+        const message = serverMessage || err.message || "An error occurred";
+        setError(message);
+
+        // If the server returned 401 or a token-related message, force logout
+        const status = err.response?.status;
+        if (status === 401 || (message && /token|expired|invalid|unauthorized/i.test(message))) {
+          logout();
+          navigate("/login");
         }
       } finally {
         setLoading(false);
@@ -197,88 +190,87 @@ const ProfilePage = () => {
   // --- Main Profile View/Edit Form ---
   return (
     <div className="min-h-screen w-full bg-gray-50 p-6 font-sans">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-extrabold text-gray-900">
-            {isEditing ? "Edit Profile" : "My Profile"}
-          </h1>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => { logout(); navigate("/login"); }}
-              className="flex items-center px-4 py-2 bg-red-500 text-white rounded-md text-sm font-medium hover:bg-red-600 transition duration-150"
-            >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M3 3a1 1 0 011-1h6a1 1 0 110 2H5v14h10V5h-2a1 1 0 110-2h6a1 1 0 011 1v14a1 1 0 01-1 1H4a1 1 0 01-1-1V3zm10 5a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3A1 1 0 0113 15v-2H7a1 1 0 110-2h6V8z" clipRule="evenodd" />
-                </svg>
-                Sign Out
-            </button>
-          </div>
-        </div>
-
-        {/* Conditional rendering: Edit Form or Profile View */}
-        {isEditing ? (
-          <EditProfileForm 
-            user={user} 
-            onSave={handleUpdateProfile} 
-            onCancel={() => {
-              setIsEditing(false);
-              setUpdateError("");
-            }} 
-            isSubmitting={isSubmitting}
-            updateError={updateError}
-          />
-        ) : (
-          <div className="bg-white rounded-xl shadow-lg p-8">
-            <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
-              <div className="flex-shrink-0">
-                <div className="h-28 w-28 rounded-full bg-indigo-100 flex items-center justify-center text-3xl font-bold text-indigo-700 border-4 border-white shadow-md">
+      <div className="max-w-5xl mx-auto">
+        <div className="bg-white shadow-lg rounded-2xl overflow-hidden">
+          <div className="md:flex">
+            {/* Left column: avatar and actions */}
+            <div className="md:w-1/3 bg-gradient-to-b from-indigo-50 to-white p-8 flex flex-col items-center text-center">
+              <div className="relative">
+                <div className="h-32 w-32 rounded-full bg-indigo-100 flex items-center justify-center text-4xl font-extrabold text-indigo-700 border-4 border-white shadow-lg">
                   {user.name ? user.name.charAt(0).toUpperCase() : "U"}
                 </div>
-              </div>
-
-              <div className="flex-1">
-                <h2 className="text-2xl font-bold text-gray-900 mb-1">{user.name || "Unnamed User"}</h2>
-                <p className="text-sm text-gray-500 mb-6">{user.role || "Member"}</p>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-8">
-                  <div className="p-3 bg-gray-50 rounded-lg">
-                    <p className="text-xs uppercase font-medium text-gray-400">Email Address</p>
-                    <p className="text-base font-semibold text-gray-800 break-words">{user.email || "—"}</p>
-                  </div>
-
-                  <div className="p-3 bg-gray-50 rounded-lg">
-                    <p className="text-xs uppercase font-medium text-gray-400">User ID</p>
-                    <p className="text-base font-semibold text-gray-800 break-all">{user.id || user.user_id || "—"}</p>
-                  </div>
-
-                  <div className="p-3 bg-gray-50 rounded-lg">
-                    <p className="text-xs uppercase font-medium text-gray-400">Joined On</p>
-                    <p className="text-base font-semibold text-gray-800">
-                      {user.created_at ? new Date(user.created_at).toLocaleDateString() : "—"}
-                    </p>
-                  </div>
-
-                  <div className="p-3 bg-gray-50 rounded-lg">
-                    <p className="text-xs uppercase font-medium text-gray-400">Additional Info</p>
-                    <p className="text-base font-semibold text-gray-800">{user.extra || "Not set"}</p>
-                  </div>
+                <div className="absolute -bottom-2 right-0">
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-full text-sm font-medium shadow hover:bg-indigo-700 transition"
+                  >
+                    Edit
+                  </button>
                 </div>
               </div>
+
+              <h3 className="mt-6 text-xl font-bold text-gray-900">{user.name || 'Unnamed User'}</h3>
+              <p className="mt-1 text-sm text-gray-500">{user.role || 'Member'}</p>
+
+              <div className="mt-6 w-full">
+                <button
+                  onClick={() => { logout(); navigate('/login'); }}
+                  className="w-full block px-4 py-2 text-center bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition"
+                >
+                  Sign Out
+                </button>
+              </div>
             </div>
-            
-            <div className="w-full mt-8 flex justify-end">
-              <button
-                onClick={() => setIsEditing(true)} // Toggles to show the form
-                className="flex items-center px-6 py-2 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition duration-150 shadow-lg shadow-indigo-200/50"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-                </svg>
-                Edit Profile
-              </button>
+
+            {/* Right column: details */}
+            <div className="md:w-2/3 p-8">
+              {isEditing ? (
+                <EditProfileForm 
+                  user={user} 
+                  onSave={handleUpdateProfile} 
+                  onCancel={() => { setIsEditing(false); setUpdateError(''); }} 
+                  isSubmitting={isSubmitting}
+                  updateError={updateError}
+                />
+              ) : (
+                <div>
+                  <h2 className="text-2xl font-semibold text-gray-900 mb-4">Profile Information</h2>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="p-4 bg-gray-50 rounded-lg">
+                      <p className="text-xs uppercase font-medium text-gray-400">Email</p>
+                      <p className="mt-1 text-base font-semibold text-gray-800 break-words">{user.email || '—'}</p>
+                    </div>
+
+                    <div className="p-4 bg-gray-50 rounded-lg">
+                      <p className="text-xs uppercase font-medium text-gray-400">User ID</p>
+                      <p className="mt-1 text-base font-semibold text-gray-800 break-all">{user.id || user.user_id || '—'}</p>
+                    </div>
+
+                    <div className="p-4 bg-gray-50 rounded-lg">
+                      <p className="text-xs uppercase font-medium text-gray-400">Joined</p>
+                      <p className="mt-1 text-base font-semibold text-gray-800">{user.created_at ? new Date(user.created_at).toLocaleDateString() : '—'}</p>
+                    </div>
+
+                    <div className="p-4 bg-gray-50 rounded-lg">
+                      <p className="text-xs uppercase font-medium text-gray-400">Extra</p>
+                      <p className="mt-1 text-base font-semibold text-gray-800">{user.extra || 'Not set'}</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 flex gap-3 justify-end">
+                    <button
+                      onClick={() => setIsEditing(true)}
+                      className="px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition"
+                    >
+                      Edit Profile
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
