@@ -1,57 +1,31 @@
-import React, { useState } from "react";
+import React, { useState, useContext, useEffect } from "react";
 import ListingCard from "../components/marketplace/ListingCard";
 import FilterSidebar from "../components/marketplace/FilterSidebar";
-
-// Sample data
-const listingsData = [
-  {
-    id: 1,
-    title: "Refurbished Chair",
-    category: "Furniture",
-    price: 1200,
-    imageUrl: "/marketplace/refubrished%20chair.jpeg",
-  },
-  {
-    id: 2,
-    title: "Stylish Lamp",
-    category: "Lighting",
-    price: 800,
-    imageUrl: "/marketplace/vintage%20lamp.jpeg",
-  },
-  {
-    id: 3,
-    title: "Casual Jacket",
-    category: "Clothing",
-    price: 1500,
-    imageUrl:"/marketplace/jacket.jpeg",
-  },
-  {
-    id: 4,
-    title: "Office Desk",
-    category: "Furniture",
-    price: 3500,
-    imageUrl: "/marketplace/table.jpeg",
-  },
-  {
-    id: 5,
-    title: "Desk Lamp",
-    category: "Lighting",
-    price: 1200,
-    imageUrl: "/marketplace/vintage%20lamp.jpeg",
-  },
-  {
-    id: 6,
-    title: "Console Table",
-    category: "Furniture",
-    price: 2800,
-    imageUrl: "/marketplace/table.jpeg",
-  },
-];
+import { AuthContext } from "../components/context/ui/authContextValue.jsx";
+import { useNavigate } from 'react-router-dom'
+import api from '../api/axiosConfig'
 
 const Marketplace = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({});
   const [searchTerm, setSearchTerm] = useState("");
+  const auth = useContext(AuthContext)
+  const navigate = useNavigate()
+  const [listingsData, setListingsData] = useState([])
+
+  useEffect(() => {
+    let mounted = true
+    const fetchListings = async () => {
+      try {
+        const res = await api.get('/listings/')
+        if (mounted && res.data?.data) setListingsData(res.data.data)
+      } catch (err) {
+        console.error('Error fetching listings', err)
+      }
+    }
+    fetchListings()
+    return () => { mounted = false }
+  }, [])
 
   // Apply filter logic
   const filteredListings = listingsData.filter((item) => {
@@ -89,6 +63,21 @@ const Marketplace = () => {
             className="ml-4 bg-green-600 text-white px-5 py-2 rounded-xl text-sm hover:bg-green-700"
           >
             {showFilters ? "Hide Filters" : "Show Filters"}
+          </button>
+
+          {/* Create Listing Button */}
+          <button
+            onClick={() => {
+              if (auth?.user) {
+                navigate('/create-listing')
+              } else {
+                // send them to login with redirect back to create page
+                navigate(`/login?next=${encodeURIComponent('/create-listing')}`)
+              }
+            }}
+            className="ml-4 bg-white text-green-600 border border-green-600 px-5 py-2 rounded-xl text-sm hover:bg-green-50"
+          >
+            Create Listing
           </button>
         </div>
 

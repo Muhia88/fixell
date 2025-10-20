@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.js';
 import Input from '../components/common/input.jsx'; 
 import Button from '../components/common/Button.jsx'; 
@@ -10,12 +10,15 @@ const LoginPage = () => {
     const [error, setError] = useState('');
     const { login, loading, isLoggedIn } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
+    const params = new URLSearchParams(location.search);
+    const next = params.get('next') || '/';
 
     useEffect(() => {
         if (isLoggedIn) {
-            navigate('/'); 
+            navigate(next);
         }
-    }, [isLoggedIn, navigate]);
+    }, [isLoggedIn, navigate, next]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -28,7 +31,7 @@ const LoginPage = () => {
 
         try {
             await login(email, password);
-            navigate('/'); 
+            navigate(next);
         } catch (err) {
             const errorMessage = err.response?.data?.message || 'Login failed. Check your credentials.';
             setError(errorMessage);

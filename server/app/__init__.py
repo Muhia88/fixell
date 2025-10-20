@@ -1,4 +1,5 @@
 from flask import Flask
+import os
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from config import Config 
@@ -42,6 +43,12 @@ def create_app(config_class=Config):
         pass
 
     try:
+        from app.routes.user_routes import user_bp
+        app.register_blueprint(user_bp)
+    except Exception:
+        pass
+
+    try:
         from app.routes.support_routes import support_bp
         app.register_blueprint(support_bp, url_prefix='/api/support')
     except Exception:
@@ -66,5 +73,12 @@ def create_app(config_class=Config):
     @app.route('/test')
     def test_page():
         return '<h1>Fixell Flask Application Factory Pattern Operational</h1>'
+
+    # Serve uploaded files in instance/uploads at /uploads/<filename>
+    @app.route('/uploads/<path:filename>')
+    def uploaded_file(filename):
+        from flask import send_from_directory
+        upload_folder = os.path.join(app.instance_path, 'uploads')
+        return send_from_directory(upload_folder, filename)
 
     return app
