@@ -1,7 +1,11 @@
 import React, { useState } from "react";
+import { buildUrl } from '../../api/axiosConfig'
 
 const ListingCard = ({ listing, onClick }) => {
-  const { title, description, price, category, created_at, imageUrl } = listing;
+  const { title, description, price, category, created_at } = listing;
+  // prefer images[0] if present
+  const rawImage = (listing.images && listing.images.length > 0) ? listing.images[0] : listing.imageUrl;
+  const imageUrl = rawImage ? buildUrl(rawImage) : rawImage;
   const [imgError, setImgError] = useState(false);
 
   return (
