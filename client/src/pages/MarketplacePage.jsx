@@ -1,9 +1,10 @@
-import React, { useState, useContext, useEffect } from "react";
+import React, { useState, useContext, useEffect, useRef, useCallback } from "react";
 import ListingCard from "../components/marketplace/ListingCard";
 import FilterSidebar from "../components/marketplace/FilterSidebar";
 import { AuthContext } from "../components/context/ui/authContextValue.jsx";
 import { useNavigate } from 'react-router-dom'
 import api from '../api/axiosConfig'
+// session cache used directly via sessionStorage for full-list caching
 
 const Marketplace = () => {
   const [showFilters, setShowFilters] = useState(false);
@@ -11,30 +12,143 @@ const Marketplace = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const auth = useContext(AuthContext)
   const navigate = useNavigate()
-  const [listingsData, setListingsData] = useState([])
+  // infinite scroll: initial 10 then load more as user scrolls
+  const PAGE_SIZE = 10
+  const fullCacheKey = `marketplace_full_${searchTerm || ''}_${filters.category || ''}_${filters.minPrice || ''}_${filters.maxPrice || ''}`
 
+  const [items, setItems] = useState([])
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
+  const [loadedAll, setLoadedAll] = useState(false)
+
+  // try load entire result from sessionStorage cache first
   useEffect(() => {
-    let mounted = true
-    const fetchListings = async () => {
+    // attempt to load cached full results for this filter/search combination
+    try {
+      const raw = sessionStorage.getItem(fullCacheKey)
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        if (parsed && Array.isArray(parsed.value)) {
+          setItems(parsed.value)
+          setLoadedAll(true)
+          setCurrentPage(Math.ceil((parsed.value.length || 0) / PAGE_SIZE) || 1)
+          return
+        }
+      }
+    } catch {
+      // parse error - clear the bad cache entry
+      try { sessionStorage.removeItem(fullCacheKey) } catch (err) { console.warn('failed to remove bad cache', err) }
+    }
+
+    // otherwise reset to initial state and trigger fetch
+    setItems([])
+    setCurrentPage(1)
+    setLoadedAll(false)
+  }, [fullCacheKey])
+
+  const fetchPage = useCallback(async (pageToFetch = 1) => {
+    const params = new URLSearchParams()
+    params.set('page', pageToFetch)
+    params.set('limit', PAGE_SIZE)
+    if (searchTerm) params.set('q', searchTerm)
+    if (filters.category) params.set('category', filters.category)
+    if (filters.minPrice) params.set('min_price', filters.minPrice)
+    if (filters.maxPrice) params.set('max_price', filters.maxPrice)
+    const res = await api.get(`/listings?${params.toString()}`)
+    return res.data || { success: false, page: pageToFetch, total_pages: 1, data: [] }
+  }, [searchTerm, filters.category, filters.minPrice, filters.maxPrice])
+
+  // initial load (first page) if not cached
+  useEffect(() => {
+    let cancelled = false
+    const doInitial = async () => {
+      if (loadedAll) return
+      setIsLoadingMore(true)
       try {
-        const res = await api.get('/listings/')
-        if (mounted && res.data?.data) setListingsData(res.data.data)
-      } catch (err) {
-        console.error('Error fetching listings', err)
+        const p = await fetchPage(1)
+        if (!cancelled) {
+          setItems(p.data || [])
+          setTotalPages(p.total_pages || 1)
+          setCurrentPage(1)
+          if ((p.page || 1) >= (p.total_pages || 1)) {
+            setLoadedAll(true)
+            try { sessionStorage.setItem(fullCacheKey, JSON.stringify({ ts: Date.now(), value: p.data || [] })) } catch (err) { console.warn('cache set failed', err) }
+          }
+        }
+      } catch (e) {
+        console.error('Marketplace initial fetch failed', e)
+      } finally {
+        // Always clear loading flag for UX stability (safe if component is still mounted)
+        setIsLoadingMore(false)
       }
     }
-    fetchListings()
-    return () => { mounted = false }
-  }, [])
+    doInitial()
+    return () => { cancelled = true }
+  }, [fullCacheKey, loadedAll, fetchPage])
 
-  // Apply filter logic
-  const filteredListings = listingsData.filter((item) => {
-    const matchCategory = !filters.category || item.category === filters.category;
-    const matchMin = !filters.minPrice || item.price >= filters.minPrice;
-    const matchMax = !filters.maxPrice || item.price <= filters.maxPrice;
-    const matchSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchCategory && matchMin && matchMax && matchSearch;
-  });
+  // display state so we can clear immediately on scroll/load
+  // Server handles filtering/search; displayListings mirrors items (no duplicate state required)
+  const filteredPaged = items
+
+  // Simple skeleton grid shown while page is loading
+  const SkeletonGrid = ({ count = PAGE_SIZE }) => (
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className="animate-pulse">
+          <div className="h-40 bg-gray-200 rounded-md" />
+          <div className="mt-2 h-4 bg-gray-200 rounded w-3/4" />
+          <div className="mt-1 h-3 bg-gray-200 rounded w-1/2" />
+        </div>
+      ))}
+    </div>
+  )
+
+  // no-op: items is the single source of truth
+
+  // load next page when sentinel intersects
+  const sentinelRef = useRef(null)
+
+  const loadNextPage = async () => {
+    if (isLoadingMore || loadedAll) return
+    const next = currentPage + 1
+    if (next > totalPages) {
+      setLoadedAll(true)
+      return
+    }
+    setIsLoadingMore(true)
+    try {
+      const p = await fetchPage(next)
+      setItems((prev) => {
+        const combined = prev.concat(p.data || [])
+        if ((p.page || next) >= (p.total_pages || 1)) {
+          setLoadedAll(true)
+          try { sessionStorage.setItem(fullCacheKey, JSON.stringify({ ts: Date.now(), value: combined })) } catch (err) { console.warn('cache set failed', err) }
+        }
+        return combined
+      })
+      setCurrentPage(next)
+      setTotalPages(p.total_pages || totalPages)
+    } catch {
+      console.error('Marketplace loadNextPage failed')
+    } finally {
+      setIsLoadingMore(false)
+    }
+  }
+
+  useEffect(() => {
+    if (loadedAll) return
+    const el = sentinelRef.current
+    if (!el) return
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach(en => {
+        if (en.isIntersecting) loadNextPage()
+      })
+    }, { root: null, rootMargin: '400px', threshold: 0.1 })
+    obs.observe(el)
+    return () => obs.disconnect()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sentinelRef.current, currentPage, totalPages, loadedAll])
 
   return (
     <div className="min-h-screen w-full flex flex-col bg-gray-50">
@@ -100,12 +214,26 @@ const Marketplace = () => {
 
         {/* Listings Grid (fills remaining vertical space) */}
         <div className="flex-1 mt-4">
-          {filteredListings.length > 0 ? (
+          { isLoadingMore ? (
+            <div className="flex-1 flex items-center justify-center min-h-[60vh]">
+              <div className="w-full">
+                <SkeletonGrid />
+              </div>
+            </div>
+          ) : filteredPaged.length > 0 ? (
+            <>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
-              {filteredListings.map((listing) => (
+              {filteredPaged.map((listing) => (
                 <ListingCard key={listing.id} listing={listing} />
               ))}
             </div>
+            <div className="mt-6">
+              <div ref={sentinelRef} />
+              {isLoadingMore && (
+                <div className="mt-6"><SkeletonGrid /></div>
+              )}
+            </div>
+            </>
           ) : (
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center px-6 py-10">
