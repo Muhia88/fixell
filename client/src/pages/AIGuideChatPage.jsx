@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useContext } from 'react';
-import api from '@/api/axiosConfig';
-import Button from '@/components/common/Button';
-import MarkdownRenderer from '@/components/common/MarkdownRenderer';
-import { AuthContext } from '@/components/context/ui/authContextValue.jsx';
+import api from '../api/axiosConfig';
+import Button from '../components/common/Button';
+import MarkdownRenderer from '../components/common/MarkdownRenderer';
+import { AuthContext } from '../components/context/ui/authContextValue.jsx';
 import { useNavigate } from 'react-router-dom';
 import { Send, Cpu, Plus, MessageSquare, AlertTriangle, Edit2, Trash2 } from 'lucide-react';
-import Modal from '@/components/common/modal';
-import { useToast } from '@/components/common/useToast';
+import Modal from '../components/common/modal';
+import { useToast } from '../components/common/useToast';
 
 const TypingIndicator = () => (
     <div className="flex items-start gap-3">

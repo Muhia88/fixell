@@ -10,7 +10,6 @@ import ProtectedRoute from './components/common/ProtectedRoute.jsx';
 import Marketplace from './pages/MarketplacePage';
 import Support from './pages/SupportPage';
 import AiGuideChatPage from "./pages/AIGuideChatPage.jsx"
-import SavedGuidesPage from "./pages/SavedGuidesPage";
 import CreateListingPage from './pages/CreateListingPage.jsx';
 import MyListingsPage from './pages/MyListingsPage.jsx';
 import { AuthProvider } from "./components/context/ui/authContext.jsx";
@@ -41,7 +40,6 @@ function App() {
               <Route path="/my-listings" element={<MyListingsPage />} />
               <Route path="/support" element={<Support />} />
               <Route path="/generate-guide" element={<AiGuideChatPage />} />
-              <Route path="/saved-guides" element={<SavedGuidesPage />} />
             </Routes>
           </main>
           <Footer />

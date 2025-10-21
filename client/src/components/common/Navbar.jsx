@@ -24,8 +24,7 @@ const Navbar = () => {
         <Link to="/about" className="hover:text-green-600 transition">About</Link>
         <Link to="/marketplace" className="hover:text-green-600 transition">Marketplace</Link>
   <Link to="/my-listings" className="hover:text-green-600 transition">My Listings</Link>
-        <Link to="/generate-guide" className="hover:text-green-600 transition">Generate Guide</Link>
-        <Link to="/saved-guides" className="hover:text-green-600 transition">Saved Guides</Link>
+  <Link to="/generate-guide" className="hover:text-green-600 transition">AI Assistant</Link>
         <Link to="/support" className="hover:text-green-600 transition">Support</Link>
       </div>
 
