@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useContext } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import api from '@/api/axiosConfig';
 import Button from '@/components/common/Button';
 import MarkdownRenderer from '@/components/common/MarkdownRenderer';
@@ -66,7 +66,7 @@ const AiGuideChatPage = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [isFetchingConvos, setIsFetchingConvos] = useState(true);
     const [fetchError, setFetchError] = useState(null);
-    const messagesEndRef = useRef(null);
+    
     const auth = useContext(AuthContext);
     const navigate = useNavigate();
 
@@ -113,9 +113,7 @@ const AiGuideChatPage = () => {
         fetchMessages();
     }, [activeConversationId]);
 
-    useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages, isLoading]);
+    
 
     const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
     const [saveTitle, setSaveTitle] = useState('');
@@ -167,7 +165,6 @@ const AiGuideChatPage = () => {
         const title = renameTitle?.trim();
         if (!title) return;
         try {
-            // close modal immediately so user sees feedback and doesn't think nothing happened
             closeRenameModal();
             const res = await api.put(`/guides/conversations/${id}`, { title });
             const updated = res.data;
@@ -193,14 +190,12 @@ const AiGuideChatPage = () => {
         const convo = deleteTarget;
         if (!convo) return closeDeleteModal();
         try {
-            // close modal immediately so user sees feedback
             closeDeleteModal();
             setIsRenameModalOpen(false);
             setIsSaveModalOpen(false);
             await api.delete(`/guides/conversations/${convo.id}`);
             setConversations(prev => prev.filter(c => c.id !== convo.id));
             if (activeConversationId === convo.id) {
-                // reset to local new chat
                 createNewChat();
             }
             toast.success({ title: 'Deleted', message: `Conversation "${convo.title}" deleted.` });
@@ -215,7 +210,6 @@ const AiGuideChatPage = () => {
 
     const saveConversation = async (titleFromModal) => {
         const title = (titleFromModal || saveTitle || '').trim();
-        // client-side validation
         if (!messages || messages.length === 0) {
             setSaveError('Cannot save an empty conversation.');
             return;
@@ -230,7 +224,6 @@ const AiGuideChatPage = () => {
         }
         setSaveError('');
         try {
-            // close modal immediately so users see it collapse
             closeSaveModal();
             const res = await api.post('/guides/conversations', { title: title.trim() });
             const conv = res.data;
@@ -324,7 +317,6 @@ const AiGuideChatPage = () => {
                         </div>
                     ))}
                     {isLoading && <TypingIndicator />}
-                    <div ref={messagesEndRef} />
                 </main>
                 <footer className="p-4 bg-white border-t border-gray-200">
                     <form onSubmit={handleSubmit} className="max-w-3xl mx-auto flex gap-3">
