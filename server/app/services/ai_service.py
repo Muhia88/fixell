@@ -1,105 +1,99 @@
 import os
 from flask import current_app
-from typing import Optional, List, Dict
+from typing import List, Dict
 
-# Try to import the optional Google Generative AI SDK. If it's not available
-# (for local/dev testing), fall back to a lightweight placeholder generator.
-try:
-    import google.generativeai as genai  # type: ignore
-    _HAS_GENAI = True
-except Exception:
-    genai = None
-    _HAS_GENAI = False
+from openai import OpenAI
+
+
+def _get_openai_client():
+    api_key = current_app.config.get('OPENAI_API_KEY')
+    if not api_key:
+        raise ValueError('OPENAI_API_KEY not configured in the environment')
+    # Create a fresh OpenAI client instance using the configured key
+    return OpenAI(api_key=api_key)
+
+
+def generate_chat_response(messages: List[Dict[str, str]]) -> str:
+    """
+    Generate a chat-style response using OpenAI's ChatCompletion API.
+    `messages` should be a list of dicts with keys 'role' and 'content'.
+    Roles expected: 'user' and 'model' (we map 'model' -> 'assistant').
+    """
+    try:
+        client = _get_openai_client()
+        model = current_app.config.get('OPENAI_CHAT_MODEL', 'gpt-4o-mini')
+
+        # System prompt: the assistant persona and rules
+        system_prompt = """
+You are 'Fixell-Bot', an expert, patient, and safety-conscious repair assistant. Follow the 'Step, Confirm, Continue' interactive approach and always include clear safety guidance.
+"""
+
+        openai_messages = [{"role": "system", "content": system_prompt}]
+        for m in messages:
+            role = 'user' if m.get('role') == 'user' else 'assistant'
+            openai_messages.append({"role": role, "content": m.get('content', '')})
+
+        # Use the new OpenAI client interface
+        resp = client.chat.completions.create(model=model, messages=openai_messages)
+        # New client returns choices with message objects. Extract content safely.
+        text = None
+        if getattr(resp, 'choices', None):
+            choice = resp.choices[0]
+            msg = getattr(choice, 'message', None)
+            if msg is not None:
+                # msg may be a pydantic object with attribute 'content'
+                text = getattr(msg, 'content', None)
+                if text is None:
+                    # try dict-like access
+                    try:
+                        text = msg['content']
+                    except Exception:
+                        text = None
+        if not text:
+            raise RuntimeError('OpenAI returned an empty chat completion')
+        return text.strip()
+
+    except Exception as e:
+        current_app.logger.exception('An unexpected error occurred in the AI service: %s', e)
+        # Return an explicit model-related error message rather than a handwritten fallback
+        return f"Error: model {current_app.config.get('OPENAI_CHAT_MODEL')} error: {str(e)}"
 
 
 def generate_repair_guide_content(item_description: str) -> str:
     """
-    Generates a step-by-step repair guide using the Gemini API.
-
-    Args:
-        item_description: A string describing the broken item.
-
-    Returns:
-        A formatted string containing the repair guide, or an error message.
+    Generate a full repair guide via OpenAI chat completion. Returns an error string mentioning the model on failure.
     """
     try:
-        # If the SDK is available and configured, attempt to generate text via SDK
-        if _HAS_GENAI:
-            api_key = current_app.config.get('GEMINI_API_KEY')
-            if api_key:
-                genai.configure(api_key=api_key)
-                model_name = current_app.config.get('GEMINI_MODEL') or 'models/text-bison-001'
+        client = _get_openai_client()
+        model = current_app.config.get('OPENAI_MODEL', 'gpt-4o-mini')
+        prompt = (
+            "Please produce a full repair guide in Markdown for the following problem. "
+            "Include these sections: ## Introduction, ## Tools & Materials, ## Step-by-Step Guide, and ## Safety Tips."
+            f"\n\nProblem: {item_description}"
+        )
 
-                prompt = (
-                    "As an expert DIY repair assistant, create a clear, beginner-friendly, "
-                    "step-by-step repair guide. The guide must be formatted in Markdown and "
-                    "include: an Introduction, Tools & Materials, Numbered Steps, and Safety Tips.\n\n"
-                    f"Item: {item_description}"
-                )
-
-                # Try generate_text (available in current SDK)
-                if hasattr(genai, 'generate_text'):
-                    try:
-                        response = genai.generate_text(model=model_name, prompt=prompt, max_output_tokens=512)
-                        # Try multiple possible response shapes
-                        if hasattr(response, 'text') and response.text:
-                            return response.text.strip()
-                        if hasattr(response, 'candidates') and response.candidates:
-                            first = response.candidates[0]
-                            for attr in ('content', 'output', 'text'):
-                                if hasattr(first, attr) and getattr(first, attr):
-                                    return getattr(first, attr).strip()
-                            return str(first)
-                    except Exception:
-                        # Fall through to other attempts or fallback
-                        pass
-
-                # Try chat.create if available
-                if hasattr(genai, 'chat'):
-                    try:
-                        resp = genai.chat.create(model=model_name, messages=[{"role": "user", "content": prompt}])
-                        # Extract candidate/message content
-                        if hasattr(resp, 'candidates') and resp.candidates:
-                            c = resp.candidates[0]
-                            for attr in ('content', 'output', 'text'):
-                                if hasattr(c, attr) and getattr(c, attr):
-                                    return getattr(c, attr).strip()
-                        if hasattr(resp, 'message') and resp.message:
-                            m = resp.message
-                            for attr in ('content', 'text'):
-                                if hasattr(m, attr) and getattr(m, attr):
-                                    return getattr(m, attr).strip()
-                    except Exception:
-                        pass
-
-        # Fallback placeholder guide
-        guide_lines = [
-            '## Introduction',
-            f"Here's a simple repair guide for: {item_description}",
-            '',
-            '## Tools & Materials',
-            '- Screwdriver set',
-            '- Replacement parts (as needed)',
-            '- Clean cloth',
-            '',
-            '## Steps',
-            '1. Diagnose the problem by inspecting the item.',
-            '2. Power off and unplug the device.',
-            '3. Open the enclosure using the appropriate screwdriver.',
-            '4. Locate the damaged component and remove it carefully.',
-            '5. Replace the damaged component with the new part.',
-            '6. Reassemble the device and test functionality.',
-            '',
-            '## Safety Tips',
-            '- Wear eye protection when working with small parts.',
-            '- Work on a grounded surface to avoid static damage.',
+        messages = [
+            {"role": "system", "content": "You are an expert repair guide generator. Produce clear Markdown output."},
+            {"role": "user", "content": prompt}
         ]
-        return "\n".join(guide_lines)
 
-    except ValueError as ve:
-        print(f"Configuration Error: {ve}")
-        return "Error: The AI service is not configured correctly. Please contact support."
+        resp = client.chat.completions.create(model=model, messages=messages)
+        text = None
+        if getattr(resp, 'choices', None):
+            choice = resp.choices[0]
+            msg = getattr(choice, 'message', None)
+            if msg is not None:
+                text = getattr(msg, 'content', None)
+                if text is None:
+                    try:
+                        text = msg['content']
+                    except Exception:
+                        text = None
+
+        if not text:
+            return f"Error: model {model} returned no content"
+        return text.strip()
+
     except Exception as e:
-        print(f"An unexpected error occurred in the AI service: {e}")
-        return "Error: Could not generate the repair guide at this time. Please try again later."
-
+        current_app.logger.exception('Repair guide generation failed: %s', e)
+        return f"Error: model {current_app.config.get('OPENAI_MODEL')} error: {str(e)}"

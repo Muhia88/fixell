@@ -18,15 +18,19 @@ const AiGuideGeneratorPage = () => {
         setGeneratedGuide(null);
 
         try {
-            const response = await api.post('/guides/generate_dev', { description });
+            const response = await api.post('/guides/generate', { description });
             const data = response.data;
-            if (data.guide) {
-                setGeneratedGuide({ description, guide_content: data.guide });
+            // API returns { guide_content } on success or { msg: 'Error: model ...' } on failure
+            if (data.guide_content) {
+                setGeneratedGuide({ description, guide_content: data.guide_content });
+            } else if (data.msg) {
+                // Surface model errors clearly
+                setError(data.msg);
             } else {
-                setGeneratedGuide({ description: data.description || description, guide_content: data.guide_content || data.guide });
+                setError('Unexpected response from server');
             }
         } catch (err) {
-            const errorMessage = err.response?.data?.msg || "An unexpected error occurred. Please try again.";
+            const errorMessage = err.response?.data?.msg || err.message || "An unexpected error occurred. Please try again.";
             setError(errorMessage);
             console.error("Guide generation failed:", err);
         } finally {

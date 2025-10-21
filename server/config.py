@@ -21,7 +21,13 @@ class Config:
     
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
-    GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
-    
+    # OpenAI API key
+    OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
+    # Default models for OpenAI (adjust as needed). Use a chat-capable model for chat.
+    OPENAI_CHAT_MODEL = os.environ.get('OPENAI_CHAT_MODEL', 'gpt-4o-mini')
+    OPENAI_MODEL = os.environ.get('OPENAI_MODEL', 'gpt-4o-mini')
+    # Enable an environment-gated model listing endpoint during development for diagnostics
+    ENABLE_AI_MODEL_LISTING = os.environ.get('ENABLE_AI_MODEL_LISTING', 'true').lower() in ('1', 'true', 'yes')
+
     ALLOW_DEV_GENERATE = os.environ.get('ALLOW_DEV_GENERATE', 'false').lower() in ('1', 'true', 'yes')
 
