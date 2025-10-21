@@ -34,7 +34,7 @@ const ContactForm = () => {
 
       setStatus({ type: "success", message: "Message sent successfully!" });
       setFormData({ name: "", email: "", subject: "", message: "" });
-    } catch (err) {
+    } catch {
       setStatus({ type: "error", message: "Failed to send message. Try again later." });
     } finally {
       setIsLoading(false);

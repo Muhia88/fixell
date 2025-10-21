@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useAuth } from "../hooks/useAuth"; // FIX: Removed .js extension to resolve module path error
 import api from "../api/axiosConfig";
 import { useNavigate } from "react-router-dom";
+import useSessionCache from '../hooks/useSessionCache'
 
 // Component for the Edit Form
 const EditProfileForm = ({ user, onSave, onCancel, isSubmitting, updateError }) => {
@@ -75,6 +76,19 @@ const ProfilePage = () => {
 
 
   // Function to handle the profile update (PUT request)
+  // Use cache for profile data — key scoped per-user
+  const userId = user?.id || user?.user_id || null
+  const profileKey = userId ? `profile_${userId}` : null
+  const { data: cachedProfile } = useSessionCache(
+    profileKey,
+    async () => {
+      const res = await api.get('/auth/profile')
+      return res.data?.user || res.data
+    },
+    [token, userId],
+    1000 * 60 * 30 // default 30 minutes TTL
+  )
+
   const handleUpdateProfile = async (newName) => {
     setIsSubmitting(true);
     setUpdateError("");
@@ -84,7 +98,10 @@ const ProfilePage = () => {
       const res = await api.put('/auth/profile', { name: newName });
 
       // Update local state with new user data
-      setUser(res.data.user || res.data);
+  const updated = res.data.user || res.data
+  setUser(updated);
+  // update cache for this user key
+  try { if (profileKey) sessionStorage.setItem(profileKey, JSON.stringify({ ts: Date.now(), value: updated })) } catch { /* ignore */ }
       setIsEditing(false); // Exit edit mode
 
     } catch (err) {
@@ -111,6 +128,13 @@ const ProfilePage = () => {
       return;
     }
 
+    // hydrate from cache if available
+    if (cachedProfile) {
+      setUser(cachedProfile)
+      setLoading(false)
+      return
+    }
+
     const controller = new AbortController();
     const fetchProfile = async () => {
       setLoading(true);
@@ -119,7 +143,9 @@ const ProfilePage = () => {
         // Use axios client so baseURL and token interceptor are used
         const res = await api.get('/auth/profile', { signal: controller.signal });
         // server returns { user: { ... } }
-        setUser(res.data.user || res.data);
+        const payload = res.data.user || res.data
+        setUser(payload);
+  try { sessionStorage.setItem('profile', JSON.stringify(payload)) } catch { /* ignore */ }
       } catch (err) {
         // axios uses different shapes for cancellation errors — detect them here
         const isCanceled = err?.code === 'ERR_CANCELED' || err?.message === 'canceled' || err?.name === 'CanceledError';
@@ -146,7 +172,7 @@ const ProfilePage = () => {
 
     fetchProfile();
     return () => controller.abort();
-  }, [token, navigate, logout]);
+  }, [token, navigate, logout, cachedProfile]);
 
   // --- Conditional Rendering for Loading/Error States ---
 

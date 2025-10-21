@@ -1,4 +1,5 @@
 from flask import Blueprint, jsonify, request
+from sqlalchemy import or_, and_
 from app.models.listing import Listing
 from app import db
 import os
@@ -12,7 +13,7 @@ from app.utils.auth import login_required
 
 listing_bp = Blueprint("listing_bp", __name__)
 
-@listing_bp.route("/", methods=["GET"])
+@listing_bp.route("", methods=["GET"])
 def get_listings():
     """
     GET /api/listings?page=1&limit=10
@@ -22,14 +23,39 @@ def get_listings():
         page = int(request.args.get("page", 1))
         limit = int(request.args.get("limit", 10))
         user_id = request.args.get("user_id")
+        q = request.args.get('q')
+        category = request.args.get('category')
+        min_price = request.args.get('min_price')
+        max_price = request.args.get('max_price')
 
         query = Listing.query.order_by(Listing.created_at.desc())
+        # filter by user if provided
         if user_id:
             try:
                 uid = int(user_id)
                 query = query.filter_by(user_id=uid)
             except ValueError:
                 return jsonify({"success": False, "message": "user_id must be an integer"}), 400
+
+        # text search (title or description)
+        if q:
+            like_q = f"%{q}%"
+            query = query.filter(or_(Listing.title.ilike(like_q), Listing.description.ilike(like_q)))
+
+        # category filter
+        if category:
+            query = query.filter_by(category=category)
+
+        # price range filters
+        try:
+            if min_price is not None:
+                mp = float(min_price)
+                query = query.filter(Listing.price >= mp)
+            if max_price is not None:
+                xp = float(max_price)
+                query = query.filter(Listing.price <= xp)
+        except ValueError:
+            return jsonify({"success": False, "message": "min_price and max_price must be numbers"}), 400
         paginated = query.paginate(page=page, per_page=limit, error_out=False)
 
         listings = [listing.to_dict() for listing in paginated.items]
@@ -47,7 +73,7 @@ def get_listings():
         return jsonify({"success": False, "message": str(e)}), 500
 
 
-@listing_bp.route('/', methods=['POST'])
+@listing_bp.route('', methods=['POST'])
 @login_required
 def create_listing():
     """
