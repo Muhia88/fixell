@@ -132,6 +132,9 @@ const AiGuideChatPage = () => {
 
     const toast = useToast();
 
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [deleteTarget, setDeleteTarget] = useState(null);
+
     const openSaveModal = () => {
         if (!messages || messages.length === 0) {
             alert('There are no messages to save. Start a conversation before saving.');
@@ -176,11 +179,22 @@ const AiGuideChatPage = () => {
         }
     };
 
-    const confirmDelete = async (convo) => {
-        if (!convo) return;
-        if (!window.confirm(`Delete conversation "${convo.title}"? This cannot be undone.`)) return;
+    const openDeleteModal = (convo) => {
+        setDeleteTarget(convo);
+        setIsDeleteModalOpen(true);
+    };
+
+    const closeDeleteModal = () => {
+        setDeleteTarget(null);
+        setIsDeleteModalOpen(false);
+    };
+
+    const confirmDelete = async () => {
+        const convo = deleteTarget;
+        if (!convo) return closeDeleteModal();
         try {
-            // close any modal first (no-op if not open) and give immediate feedback
+            // close modal immediately so user sees feedback
+            closeDeleteModal();
             setIsRenameModalOpen(false);
             setIsSaveModalOpen(false);
             await api.delete(`/guides/conversations/${convo.id}`);
@@ -280,7 +294,7 @@ const AiGuideChatPage = () => {
                 setActiveId={setActiveConversationId}
                 createNewChat={createNewChat}
                 onRename={openRenameModal}
-                onDelete={confirmDelete}
+                onDelete={openDeleteModal}
             />
             <div className="flex flex-col flex-grow bg-white">
                 <div className="chat-header flex items-center justify-between p-4 border-b border-gray-100">
@@ -305,7 +319,7 @@ const AiGuideChatPage = () => {
                                 ? 'bg-green-600 text-white rounded-br-none' 
                                 : 'bg-white text-gray-800 rounded-bl-none border border-gray-100'
                             }`}>
-                                <MarkdownRenderer content={msg.content} />
+                                <MarkdownRenderer content={msg.content} textColor={msg.role === 'user' ? 'text-white' : 'text-gray-800'} />
                             </div>
                         </div>
                     ))}
@@ -364,6 +378,15 @@ const AiGuideChatPage = () => {
                 <div className="flex justify-end gap-2">
                     <Button onClick={closeRenameModal}>Cancel</Button>
                     <Button onClick={submitRename} className="!bg-green-600">Rename</Button>
+                </div>
+            </div>
+        </Modal>
+        <Modal isOpen={isDeleteModalOpen} onClose={closeDeleteModal} title="Delete Conversation">
+            <div className="space-y-4">
+                <p className="text-sm text-gray-700">Are you sure you want to delete the conversation <strong>{deleteTarget?.title}</strong>? This action cannot be undone.</p>
+                <div className="flex justify-end gap-2">
+                    <Button onClick={closeDeleteModal}>Cancel</Button>
+                    <Button onClick={confirmDelete} className="!bg-red-600">Delete</Button>
                 </div>
             </div>
         </Modal>
