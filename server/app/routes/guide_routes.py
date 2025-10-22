@@ -9,6 +9,9 @@ from app.models.conversation import Conversation
 from app.models.conversation_message import ConversationMessage
 from flask import g
 
+from app.services.impact_service import create_impact_event
+from app.services.ai_service import estimate_item_weight
+
 guide_bp = Blueprint('guide_bp', __name__)
 
 
@@ -26,34 +29,28 @@ def handle_chat():
         return jsonify({"msg": "A valid 'messages' array is required"}), 400
 
     try:
-        # Save incoming user messages to the conversation if conversation_id provided
         conv_id = data.get('conversation_id')
         user_id = getattr(g, 'current_user_id', None)
         if conv_id:
-            # Persist only user messages from the incoming batch
             for m in messages:
                 if m.get('role') == 'user':
                     cm = ConversationMessage(conversation_id=conv_id, role='user', content=m.get('content'))
                     db.session.add(cm)
             db.session.commit()
 
-        # Pass the entire message history to the AI service
         ai_response_content = generate_chat_response(messages)
 
-        # Persist the AI response if a conversation is active
         if conv_id:
             cm = ConversationMessage(conversation_id=conv_id, role='model', content=ai_response_content)
             db.session.add(cm)
             db.session.commit()
 
-        # The AI service returns the content string. We wrap it in the standard message object format.
         ai_message = {"role": "model", "content": ai_response_content}
 
         return jsonify({"message": ai_message}), 200
 
     except Exception as e:
         current_app.logger.error(f"Chat generation failed: {e}")
-        # Return a generic server error message
         return jsonify({'msg': 'An error occurred while generating the chat response.'}), 500
 
 
@@ -91,7 +88,7 @@ def delete_saved_guide(guide_id):
             return jsonify({'msg': 'Guide not found'}), 404
         db.session.delete(guide)
         db.session.commit()
-        return '', 204 # No content response on successful delete
+        return '', 204 
     except Exception as e:
         current_app.logger.error(f"Failed to delete saved guide {guide_id}: {e}")
         db.session.rollback()
@@ -109,7 +106,6 @@ def generate_guide():
 
     try:
         content = generate_repair_guide_content(description)
-        # If the service returned an error-string we prefix with 'Error:' per ai_service
         if isinstance(content, str) and content.startswith('Error:'):
             return jsonify({'msg': content}), 500
 
@@ -135,12 +131,9 @@ def list_models():
             return jsonify({'msg': 'OPENAI_API_KEY not configured'}), 400
 
         client = OpenAI(api_key=api_key)
-        # call models.list (may vary by SDK version)
         models_resp = client.models.list()
-        # Convert to simple list of model ids/names for the client
         models = []
         for m in getattr(models_resp, 'data', []) or []:
-            # m may be a pydantic object
             model_id = getattr(m, 'id', None) or (m.get('id') if isinstance(m, dict) else None)
             if model_id:
                 models.append(model_id)
@@ -171,11 +164,37 @@ def list_conversations():
 def create_conversation():
     data = request.get_json() or {}
     title = data.get('title') or 'New Conversation'
+    
+    category = data.get('category', 'Other') 
     user_id = getattr(g, 'current_user_id', None)
-    conv = Conversation(user_id=user_id, title=title)
-    db.session.add(conv)
-    db.session.commit()
-    return jsonify(conv.to_dict()), 201
+    
+    try:
+        current_app.logger.info(f"Requesting AI weight estimate for guide: {title}")
+        estimated_weight = estimate_item_weight(title, "AI Repair Guide", category)
+        current_app.logger.info(f"AI estimated weight: {estimated_weight} kg")
+
+
+        event_desc = f"Saved guide: '{title}'"
+        impact_event = create_impact_event(
+            user_id=user_id,
+            event_type="GUIDE_SAVED",
+            category=category,
+            description=event_desc,
+            estimated_weight_kg=estimated_weight 
+        )
+        db.session.add(impact_event)
+  
+        conv = Conversation(user_id=user_id, title=title)
+        db.session.add(conv)
+        
+        db.session.commit()
+        
+        return jsonify(conv.to_dict()), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Failed to create conversation or impact event: {e}")
+        return jsonify({'msg': 'Failed to save conversation'}), 500
 
 
 @guide_bp.route('/conversations/<int:conv_id>/messages', methods=['GET'])
@@ -248,7 +267,6 @@ def delete_conversation(conv_id):
     if not conv or conv.user_id != user_id:
         return jsonify({'msg': 'Conversation not found'}), 404
     try:
-        # Delete messages first
         ConversationMessage.query.filter_by(conversation_id=conv_id).delete()
         db.session.delete(conv)
         db.session.commit()

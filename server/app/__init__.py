@@ -16,29 +16,22 @@ def create_app(config_class=Config):
     
     app.config.from_object(config_class)
 
-    # Enable CORS for all API routes. Allow common methods and headers used by the frontend
     CORS(app,
          resources={r"/api/*": {"origins": "*"}},
          supports_credentials=True,
          allow_headers=["Content-Type", "Authorization", "X-Requested-With", "Accept"],
          methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"])
 
-    # Ensure OPTIONS preflight requests always return HTTP 200 with CORS headers
     @app.after_request
     def _add_cors_headers(response):
-        # Flask-CORS normally sets headers, ensure they exist for any response
         response.headers.setdefault('Access-Control-Allow-Origin', '*')
         response.headers.setdefault('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS')
         response.headers.setdefault('Access-Control-Allow-Headers', 'Content-Type, Authorization')
         return response
 
     db.init_app(app)
-    # Initialize Flask-Migrate
     migrate = Migrate(app, db)
 
-    # Note: main_routes.py is not present in this project. If you have a
-    # main blueprint to register, add it here. The dynamic imports below
-    # will register available blueprints (auth, guides, listings, support).
     try:
         from app.routes.auth_routes import auth_bp
         app.register_blueprint(auth_bp, url_prefix='/api/auth')
@@ -83,13 +76,12 @@ def create_app(config_class=Config):
             return jsonify({'msg': content}), 500
         return jsonify({'guide': content}), 200
 
-    from app.models import user, item, listing, repair_guide, support_ticket
+    from app.models import user, item, listing, repair_guide, support_ticket, user_impact_event, conversation, conversation_message, saved_guide
     
     @app.route('/test')
     def test_page():
         return '<h1>Fixell Flask Application Factory Pattern Operational</h1>'
 
-    # Serve uploaded files in instance/uploads at /uploads/<filename>
     @app.route('/uploads/<path:filename>')
     def uploaded_file(filename):
         from flask import send_from_directory

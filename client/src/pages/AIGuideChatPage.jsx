@@ -33,7 +33,7 @@ const ChatSidebar = ({ conversations, activeId, setActiveId, createNewChat, onRe
         </div>
         <nav className="flex-grow overflow-y-auto p-2 space-y-1">
             {conversations.map(convo => (
-                <div key={convo.id} className={`group flex items-center justify-between gap-3 px-3 py-2 rounded-lg transition-colors text-sm ${ // <-- 1. ADDED 'justify-between'
+                <div key={convo.id} className={`group flex items-center justify-between gap-3 px-3 py-2 rounded-lg transition-colors text-sm ${
                         activeId === convo.id ? 'bg-green-100 text-green-800' : 'text-gray-600 hover:bg-gray-100'
                     }`}>
                     <a
@@ -44,7 +44,7 @@ const ChatSidebar = ({ conversations, activeId, setActiveId, createNewChat, onRe
                         <MessageSquare size={16} className="flex-shrink-0" />
                         <span className="truncate">{convo.title}</span>
                     </a>
-                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity flex-shrink-0"> {/* <-- 3. ADDED 'flex-shrink-0' */}
+                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity flex-shrink-0">
                         <button title="Rename" onClick={() => onRename(convo)} className="p-1 rounded hover:bg-gray-100" aria-label={`Rename ${convo.title}`}>
                             <Edit2 size={14} className="text-gray-500 hover:text-gray-800" />
                         </button>
@@ -117,6 +117,7 @@ const AiGuideChatPage = () => {
 
     const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
     const [saveTitle, setSaveTitle] = useState('');
+    const [saveCategory, setSaveCategory] = useState('Other');
     const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
     const [renameTarget, setRenameTarget] = useState(null);
     const [renameTitle, setRenameTitle] = useState('');
@@ -139,12 +140,14 @@ const AiGuideChatPage = () => {
             return;
         }
         setSaveTitle('');
+        setSaveCategory('Other'); 
         setIsSaveModalOpen(true);
     };
 
     const closeSaveModal = () => {
         setIsSaveModalOpen(false);
         setSaveTitle('');
+        setSaveCategory('Other'); 
     };
 
     const openRenameModal = (convo) => {
@@ -210,12 +213,19 @@ const AiGuideChatPage = () => {
 
     const saveConversation = async (titleFromModal) => {
         const title = (titleFromModal || saveTitle || '').trim();
+        
+        const category = saveCategory;
+
         if (!messages || messages.length === 0) {
             setSaveError('Cannot save an empty conversation.');
             return;
         }
         if (!title) {
             setSaveError('Please enter a conversation name.');
+            return;
+        }
+        if (!category || category === '') {
+            setSaveError('Please select a category.');
             return;
         }
         if (title.length > MAX_TITLE_LENGTH) {
@@ -225,7 +235,11 @@ const AiGuideChatPage = () => {
         setSaveError('');
         try {
             closeSaveModal();
-            const res = await api.post('/guides/conversations', { title: title.trim() });
+            const res = await api.post('/guides/conversations', { 
+                title: title.trim(),
+                category: category
+            });
+            
             const conv = res.data;
             await api.post(`/guides/conversations/${conv.id}/messages`, { messages });
             setConversations(prev => [conv, ...prev]);
@@ -339,20 +353,44 @@ const AiGuideChatPage = () => {
     </div>
         <Modal isOpen={isSaveModalOpen} onClose={closeSaveModal} title="Save Conversation">
             <div className="space-y-3">
-                <label className="block text-sm font-medium text-gray-700">Conversation name</label>
-                <input
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                    value={saveTitle}
-                    onChange={(e) => setSaveTitle(e.target.value)}
-                    placeholder="Give this conversation a name"
-                    autoFocus
-                />
+                <div>
+                    <label className="block text-sm font-medium text-gray-700">Conversation name</label>
+                    <input
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md mt-1"
+                        value={saveTitle}
+                        onChange={(e) => setSaveTitle(e.target.value)}
+                        placeholder="Give this conversation a name"
+                        autoFocus
+                    />
+                </div>
+                
+                <div>
+                    <label className="block text-sm font-medium text-gray-700">Item Category</label>
+                    <select
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md mt-1"
+                        value={saveCategory}
+                        onChange={(e) => setSaveCategory(e.target.value)}
+                    >
+                        <option value="Other">Other</option>
+                        <option value="Electronics">Electronics</option>
+                        <option value="Furniture">Furniture</option>
+                        <option value="Clothing">Clothing</option>
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">Select a category for AI estimation.</p>
+                </div>
+
                 {saveError && <div className="text-sm text-red-600">{saveError}</div>}
-                <div className="flex justify-between items-center gap-2">
+                <div className="flex justify-between items-center gap-2 pt-2">
                     <div className="text-xs text-gray-500">Max {MAX_TITLE_LENGTH} chars</div>
                     <div className="flex justify-end gap-2">
                         <Button onClick={closeSaveModal}>Cancel</Button>
-                        <Button onClick={() => saveConversation(saveTitle)} className="!bg-green-600" disabled={!!saveError || !(saveTitle && saveTitle.trim())}>Save</Button>
+                        <Button 
+                            onClick={() => saveConversation(saveTitle)} 
+                            className="!bg-green-600" 
+                            disabled={!!saveError || !(saveTitle && saveTitle.trim()) || !saveCategory}
+                        >
+                            Save
+                        </Button>
                     </div>
                 </div>
             </div>

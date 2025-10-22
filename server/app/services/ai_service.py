@@ -1,16 +1,79 @@
 import os
 from flask import current_app
 from typing import List, Dict
+import json # Import the json module
 
-from openai import OpenAI
+
+def _import_openai_client():
+    try:
+        from openai import OpenAI as OpenAIClient
+        return OpenAIClient
+    except Exception:
+        # Do not fail import time; raise when client is actually required
+        return None
 
 
 def _get_openai_client():
     api_key = current_app.config.get('OPENAI_API_KEY')
     if not api_key:
         raise ValueError('OPENAI_API_KEY not configured in the environment')
-    # Create a fresh OpenAI client instance using the configured key
-    return OpenAI(api_key=api_key)
+    OpenAIClient = _import_openai_client()
+    if OpenAIClient is None:
+        raise ImportError('openai package is not installed. Install it or set up a stub for migrations.')
+    return OpenAIClient(api_key=api_key)
+
+
+def estimate_item_weight(title: str, description: str, category: str) -> float:
+    """
+    Uses OpenAI to estimate the weight of an item based on its details.
+    Returns a float (weight in kg).
+    """
+    try:
+        client = _get_openai_client()
+        model = current_app.config.get('OPENAI_CHAT_MODEL', 'gpt-4o-mini')
+
+        system_prompt = """
+        You are an expert logistics and recycling estimator. Your task is to
+        estimate the weight (in kilograms) of a household item based on its
+        title, description, and category.
+        
+        You must respond in ONLY a valid JSON format.
+        The JSON object must have one key: "weight_kg".
+        
+        Example:
+        {"weight_kg": 2.5}
+        """
+
+        user_prompt = f"""
+        Estimate the weight for the following item:
+        Title: {title}
+        Description: {description}
+        Category: {category}
+        """
+
+        resp = client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            response_format={"type": "json_object"} 
+        )
+
+        response_content = resp.choices[0].message.content
+        data = json.loads(response_content)
+        
+        weight = data.get('weight_kg')
+        
+        if isinstance(weight, (int, float)):
+            return float(weight)
+        
+        current_app.logger.warning(f"AI weight estimation returned unexpected data: {response_content}")
+        return 1.0 
+        
+    except Exception as e:
+        current_app.logger.error(f"AI weight estimation failed: {e}")
+        return 1.0 
 
 
 def generate_chat_response(messages: List[Dict[str, str]]) -> str:
@@ -23,28 +86,24 @@ def generate_chat_response(messages: List[Dict[str, str]]) -> str:
         client = _get_openai_client()
         model = current_app.config.get('OPENAI_CHAT_MODEL', 'gpt-4o-mini')
 
-        # System prompt: the assistant persona and rules
+        #System prompt: the assistant persona and rules
         system_prompt = """
-You are 'Fixell-Bot', an expert, patient, and safety-conscious repair assistant. Follow the 'Step, Confirm, Continue' interactive approach and always include clear safety guidance.
-"""
+        You are 'Fixell-Bot', an expert, patient, and safety-conscious repair assistant. Follow the 'Step, Confirm, Continue' interactive approach and always include clear safety guidance.
+        """
 
         openai_messages = [{"role": "system", "content": system_prompt}]
         for m in messages:
             role = 'user' if m.get('role') == 'user' else 'assistant'
             openai_messages.append({"role": role, "content": m.get('content', '')})
 
-        # Use the new OpenAI client interface
         resp = client.chat.completions.create(model=model, messages=openai_messages)
-        # New client returns choices with message objects. Extract content safely.
         text = None
         if getattr(resp, 'choices', None):
             choice = resp.choices[0]
             msg = getattr(choice, 'message', None)
             if msg is not None:
-                # msg may be a pydantic object with attribute 'content'
                 text = getattr(msg, 'content', None)
                 if text is None:
-                    # try dict-like access
                     try:
                         text = msg['content']
                     except Exception:
@@ -55,7 +114,6 @@ You are 'Fixell-Bot', an expert, patient, and safety-conscious repair assistant.
 
     except Exception as e:
         current_app.logger.exception('An unexpected error occurred in the AI service: %s', e)
-        # Return an explicit model-related error message rather than a handwritten fallback
         return f"Error: model {current_app.config.get('OPENAI_CHAT_MODEL')} error: {str(e)}"
 
 
