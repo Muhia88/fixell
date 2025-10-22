@@ -2,6 +2,7 @@ import React from "react";
 import { Routes, Route } from "react-router-dom";
 import Navbar from "./components/common/Navbar.jsx";
 import Footer from "./components/common/Footer.jsx";
+import AboutPage from "./pages/AboutPage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import RegisterPage from "./pages/RegisterPage.jsx";
 import LandingPage from './pages/LandingPage';
@@ -35,6 +36,7 @@ function App() {
               {/* Public Routes */}
               <Route path="/" element={<LandingPage />} />
               <Route path="/marketplace" element={<Marketplace />} />
+              <Route path="/about" element={<AboutPage />} />
               <Route path="/create-listing" element={<CreateListingPage />} />
               <Route path="/my-listings" element={<MyListingsPage />} />
               <Route path="/support" element={<Support />} />
