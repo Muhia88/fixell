@@ -17,7 +17,6 @@ flask-jwt-extended = "*"
 google-generativeai = "*"
 psycopg2-binary = "*"
 
-
 [dev-packages]
 
 [requires]
