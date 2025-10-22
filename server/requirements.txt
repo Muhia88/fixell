@@ -18,3 +18,5 @@ zipp==3.20.2
 alembic==1.11.1
 requests==2.31.0
 Flask-Migrate==4.0.4
+google-generativeai==0.8.5
+psycopg2-binary==2.9.11

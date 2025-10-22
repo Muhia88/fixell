@@ -17,7 +17,9 @@ flask-jwt-extended = "*"
 google-generativeai = "*"
 psycopg2-binary = "*"
 
+openai = "*"
+
 [dev-packages]
 
 [requires]
-python_version = "3.8"
+python_version = "3.13.7"

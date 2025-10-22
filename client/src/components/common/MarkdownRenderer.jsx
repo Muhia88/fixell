@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function MarkdownRenderer({ content }) {
+export default function MarkdownRenderer({ content, textColor = 'text-gray-800' }) {
     if (!content) return null;
 
     const lines = content.replace(/\r\n/g, '\n').split('\n');
@@ -12,7 +12,7 @@ export default function MarkdownRenderer({ content }) {
         if (!buf) return null;
         const text = buf.join(' ');
         return (
-            <p key={`md-p-${keyCounter++}`} className="leading-relaxed text-base text-gray-700">{renderInline(text)}</p>
+            <p key={`md-p-${keyCounter++}`} className={`leading-relaxed text-base ${textColor}`}>{renderInline(text)}</p>
         );
     };
 
@@ -71,13 +71,13 @@ export default function MarkdownRenderer({ content }) {
        
         if (/^##\s+/.test(line)) {
             const text = line.replace(/^##\s+/, '').trim();
-            nodes.push(<h2 key={`md-h2-${keyCounter++}`} className="text-2xl font-bold mt-6 mb-2 text-gray-800">{text}</h2>);
+            nodes.push(<h2 key={`md-h2-${keyCounter++}`} className={`text-2xl font-bold mt-6 mb-2 ${textColor}`}>{text}</h2>);
             i++;
             continue;
         }
         if (/^###\s+/.test(line)) {
             const text = line.replace(/^###\s+/, '').trim();
-            nodes.push(<h3 key={`md-h3-${keyCounter++}`} className="text-xl font-semibold mt-4 mb-2 text-gray-800">{text}</h3>);
+            nodes.push(<h3 key={`md-h3-${keyCounter++}`} className={`text-xl font-semibold mt-4 mb-2 ${textColor}`}>{text}</h3>);
             i++;
             continue;
         }
@@ -85,7 +85,7 @@ export default function MarkdownRenderer({ content }) {
     
         if (/^>\s+/.test(line)) {
             const text = line.replace(/^>\s+/, '').trim();
-            nodes.push(<blockquote key={`md-bq-${keyCounter++}`} className="pl-4 border-l-4 border-gray-200 italic text-gray-700">{renderInline(text)}</blockquote>);
+            nodes.push(<blockquote key={`md-bq-${keyCounter++}`} className={`pl-4 border-l-4 border-gray-200 italic ${textColor}`}>{renderInline(text)}</blockquote>);
             i++;
             continue;
         }
@@ -104,7 +104,7 @@ export default function MarkdownRenderer({ content }) {
             if (isOrdered) {
                 const listKey = `md-ol-${keyCounter++}`;
                 nodes.push(
-                    <ol key={listKey} className="list-decimal list-inside pl-2 space-y-2 text-gray-700">
+                    <ol key={listKey} className={`list-decimal list-inside pl-2 space-y-2 ${textColor}`}>
                         {items.map((it, idx) => (
                             <li key={`${listKey}-li-${idx}`} className="leading-relaxed">{renderInline(it)}</li>
                         ))}
@@ -113,7 +113,7 @@ export default function MarkdownRenderer({ content }) {
             } else {
                 const listKey = `md-ul-${keyCounter++}`;
                 nodes.push(
-                    <ul key={listKey} className="list-disc list-inside pl-2 space-y-2 text-gray-700">
+                    <ul key={listKey} className={`list-disc list-inside pl-2 space-y-2 ${textColor}`}>
                         {items.map((it, idx) => (
                             <li key={`${listKey}-li-${idx}`} className="leading-relaxed">{renderInline(it)}</li>
                         ))}
@@ -139,5 +139,5 @@ export default function MarkdownRenderer({ content }) {
         nodes.push(flushParagraph(paraBuf));
     }
 
-    return <div className="prose prose-lg max-w-none text-gray-800">{nodes}</div>;
+    return <div className={`prose prose-lg max-w-none ${textColor}`}>{nodes}</div>;
 }
