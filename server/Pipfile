@@ -16,6 +16,7 @@ flask-bcrypt = "*"
 flask-jwt-extended = "*"
 google-generativeai = "*"
 psycopg2-binary = "*"
+
 openai = "*"
 
 [dev-packages]
