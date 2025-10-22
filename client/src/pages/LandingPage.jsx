@@ -16,15 +16,18 @@ const RecycleIcon = (props) => (
 );
 
 // Modified Feature Card for horizontal display and hover effect
-const FeatureCard = ({ icon: Icon, title, description }) => (
-    <div className="flex-1 p-8 bg-white text-center transition duration-300 hover:shadow-xl hover:border-fixell-green border border-transparent rounded-lg">
-        <div className="mb-4 inline-block p-4 rounded-full bg-fixell-light text-fixell-green">
-            <Icon className="w-8 h-8" />
+const FeatureCard = ({ icon, title, description }) => {
+    const Icon = icon;
+    return (
+        <div className="flex-1 p-8 bg-white text-center transition duration-300 hover:shadow-xl hover:border-fixell-green border border-transparent rounded-lg">
+            <div className="mb-4 inline-block p-4 rounded-full bg-fixell-light text-fixell-green">
+                <Icon className="w-8 h-8" />
+            </div>
+            <h3 className="text-xl font-semibold mb-2">{title}</h3>
+            <p className="text-gray-600 text-base">{description}</p>
         </div>
-        <h3 className="text-xl font-semibold mb-2">{title}</h3>
-        <p className="text-gray-600 text-base">{description}</p>
-    </div>
-);
+    );
+};
 
 const App = () => {
     const features = [
@@ -47,7 +50,7 @@ const App = () => {
 
     return (
         <div className="w-full min-h-screen antialiased" style={{ fontFamily: 'Inter, sans-serif' }}>
-            <style jsx global>{`
+            <style>{`
                 .hero-background {
                     background-image: url('${heroImage}');
                     background-size: cover;
