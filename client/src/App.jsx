@@ -14,6 +14,8 @@ import CreateListingPage from './pages/CreateListingPage.jsx';
 import MyListingsPage from './pages/MyListingsPage.jsx';
 import { AuthProvider } from "./components/context/ui/authContext.jsx";
 import ToastProvider from './components/common/toast.jsx';
+import ImpactDashboardPage from "./pages/ImpactDashboardPage.jsx";
+
 
 
 function App() {
@@ -30,6 +32,11 @@ function App() {
               <Route path="/profile" element={
                 <ProtectedRoute>
                   <ProfilePage />
+                </ProtectedRoute>
+              } />
+              <Route path="/impact" element={
+                <ProtectedRoute>
+                  <ImpactDashboardPage />
                 </ProtectedRoute>
               } />
 
