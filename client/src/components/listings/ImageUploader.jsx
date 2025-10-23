@@ -1,12 +1,17 @@
 import React, { useCallback, useRef } from 'react'
+import { useToast } from '../common/useToast'
 
 export default function ImageUploader({ files, setFiles }) {
   const inputRef = useRef(null)
+  const toast = useToast()
 
   const onFiles = useCallback((fileList) => {
     const arr = Array.from(fileList).filter(f => f.type.startsWith('image/'))
     if (arr.length) setFiles((prev) => [...prev, ...arr])
-  }, [setFiles])
+    if (arr.length) {
+      toast?.success({ title: 'Image added', message: `${arr.length} image(s) added` })
+    }
+  }, [setFiles, toast])
 
   const handleDrop = (e) => {
     e.preventDefault()
@@ -20,6 +25,7 @@ export default function ImageUploader({ files, setFiles }) {
 
   const removeAt = (idx) => {
     setFiles((prev) => prev.filter((_, i) => i !== idx))
+    toast?.info({ title: 'Image removed', message: 'Image removed from upload list' })
   }
 
   return (

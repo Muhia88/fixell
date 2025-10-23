@@ -2,6 +2,7 @@ import React, { useState, useContext, useEffect } from 'react'
 import ImageUploader from '../components/listings/ImageUploader.jsx'
 import api from '../api/axiosConfig'
 import { AuthContext } from '../components/context/ui/authContextValue.jsx'
+import { useToast } from '../components/common/useToast'
 import { useNavigate } from 'react-router-dom'
 
 const initialState = {
@@ -22,6 +23,7 @@ export default function CreateListingPage() {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState(null)
+  const toast = useToast()
 
   useEffect(() => {
     if (auth?.user) {
@@ -57,14 +59,17 @@ export default function CreateListingPage() {
       })
       images.forEach((file) => fd.append('images', file))
 
-      const res = await api.post('/listings/', fd, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      })
+      const res = await api.post('/listings', fd)
 
       if (res.data && res.data.success) {
         setMessage('Listing created successfully')
+        toast?.success({ title: 'Listing created', message: `Your listing "${form.title}" was created.` })
         setForm(initialState)
         setImages([])
+        const uid = auth?.user?.id;
+        if (uid) {
+          try { sessionStorage.removeItem(`my_listings_full_active_${uid}`); } catch { /* ignore */ }
+        }
         navigate('/my-listings')
       } else {
         setMessage(res.data.message || 'Unexpected response')
