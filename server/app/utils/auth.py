@@ -7,7 +7,6 @@ from jwt import ExpiredSignatureError, InvalidTokenError
 def login_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-        # Allow preflight OPTIONS requests to pass without authentication
         if request.method == 'OPTIONS':
             return ('', 200)
         auth_header = request.headers.get('Authorization', '')
@@ -22,7 +21,6 @@ def login_required(f):
             user_id = payload.get('user_id')
             if not user_id:
                 return jsonify({'success': False, 'message': 'Invalid token payload'}), 401
-            # attach to flask.g for downstream handlers
             g.current_user_id = int(user_id)
         except ExpiredSignatureError:
             return jsonify({'success': False, 'message': 'Token expired'}), 401
