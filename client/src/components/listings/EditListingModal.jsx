@@ -1,9 +1,11 @@
 import React, { useState } from 'react'
+import { useToast } from '../common/useToast'
 import api from '../../api/axiosConfig'
 import ImageUploader from './ImageUploader'
 import { buildUrl } from '../../api/axiosConfig'
 
 export default function EditListingModal({ listing, onClose, onSaved }) {
+  const toast = useToast()
   const [form, setForm] = useState({
     title: listing.title || '',
     description: listing.description || '',
@@ -35,8 +37,10 @@ export default function EditListingModal({ listing, onClose, onSaved }) {
       }
       if (res.data?.success) {
         onSaved(res.data.data)
+        toast.success({ title: 'Saved', message: 'Listing updated successfully' })
       } else {
         setError(res.data?.message || 'Unexpected')
+        toast.error({ title: 'Save failed', message: res.data?.message || 'Unexpected error' })
       }
     } catch (err) {
       setError(err.response?.data?.message || err.message)

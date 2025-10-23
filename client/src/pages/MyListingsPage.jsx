@@ -6,6 +6,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import EditListingModal from '../components/listings/EditListingModal';
 import MarkAsSoldModal from '../components/listings/MarkAsSoldModal'; 
 import Button from '../components/common/Button'; 
+import ConfirmModal from '../components/common/ConfirmModal'
+import { useToast } from '../components/common/useToast'
 
 export default function MyListingsPage() {
   const auth = useContext(AuthContext);
@@ -14,6 +16,8 @@ export default function MyListingsPage() {
 
   const [editing, setEditing] = useState(null);
   const [selling, setSelling] = useState(null); 
+  const [confirmDelete, setConfirmDelete] = useState(null)
+  const toast = useToast()
 
   const PAGE_SIZE = 10;
   const status = 'active'; 
@@ -183,12 +187,7 @@ export default function MyListingsPage() {
                   <div className="absolute top-2 right-2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                     <button onClick={() => setEditing(l)} className="bg-white/90 px-3 py-1 rounded text-xs shadow hover:bg-white">Edit</button>
                     <button onClick={() => setSelling(l)} className="bg-green-600 text-white px-3 py-1 rounded text-xs shadow hover:bg-green-700">Mark Sold</button>
-                    <button onClick={async () => {
-                      if (!confirm('Delete this listing? This cannot be undone.')) return;
-                      try {
-                        await api.delete(`/listings/${l.id}`); refetch();
-                      } catch (err) { console.error(err); alert('Delete failed') }
-                    }} className="bg-red-500 text-white px-3 py-1 rounded text-xs shadow hover:bg-red-600">Delete</button>
+                    <button onClick={() => setConfirmDelete(l)} className="bg-red-500 text-white px-3 py-1 rounded text-xs shadow hover:bg-red-600">Delete</button>
                   </div>
                 </div>
               ))}
@@ -208,6 +207,26 @@ export default function MyListingsPage() {
       {/* Edit Modal */}
       {editing && (
         <EditListingModal listing={editing} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); refetch() }} />
+      )}
+
+      {/* Confirm Delete Modal */}
+      {confirmDelete && (
+        <ConfirmModal
+          title="Delete Listing"
+          message="Are you sure you want to delete this listing? This cannot be undone."
+          onCancel={() => setConfirmDelete(null)}
+          onConfirm={async () => {
+            try {
+              await api.delete(`/listings/${confirmDelete.id}`)
+              setConfirmDelete(null)
+              toast.success({ title: 'Deleted', message: 'Listing deleted successfully' })
+              refetch()
+            } catch (err) {
+              console.error(err)
+              toast.error({ title: 'Delete failed', message: err.response?.data?.message || err.message })
+            }
+          }}
+        />
       )}
 
       {/*Mark as Sold Modal*/}
