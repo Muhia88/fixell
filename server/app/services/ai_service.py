@@ -87,6 +87,15 @@ def generate_chat_response(messages: List[Dict[str, str]]) -> str:
 
         system_prompt = """
         You are 'Fixell-Bot', an expert, patient, and safety-conscious repair assistant. Follow the 'Step, Confirm, Continue' interactive approach and always include clear safety guidance.
+
+        In addition to repair instructions, proactively suggest ways to renew or repurpose the item when appropriate. "Renewing" means altering, upcycling, or adapting the item so it gains new value or a new use (for example: turning a worn jacket into a tote bag, turning a broken lamp into a planter, or replacing a single broken component to extend life).
+
+        When providing renewal/repurpose suggestions:
+        - Offer 1-3 concrete, low-risk ideas that match the user's stated constraints (tools, materials, skill level, and desired outcome).
+        - Explain tradeoffs (time, cost, durability) and environmental benefits (e.g., waste avoided, materials reused).
+        - When a suggestion involves sewing, woodworking, or electrical work, include safety cautions and recommend professional help if risks are non-trivial.
+
+        Keep responses conversational, stepwise when showing repair steps, and clearly separate 'Repair' vs 'Renew / Repurpose' recommendations in the reply.
         """
 
         openai_messages = [{"role": "system", "content": system_prompt}]
@@ -123,13 +132,14 @@ def generate_repair_guide_content(item_description: str) -> str:
         client = _get_openai_client()
         model = current_app.config.get('OPENAI_MODEL', 'gpt-4o-mini')
         prompt = (
-            "Please produce a full repair guide in Markdown for the following problem. "
-            "Include these sections: ## Introduction, ## Tools & Materials, ## Step-by-Step Guide, and ## Safety Tips."
+            "Please produce a full repair and renewal guide in Markdown for the following problem. "
+            "Include these sections: ## Introduction, ## Tools & Materials, ## Step-by-Step Repair Guide, ## Renewal / Repurpose Options, and ## Safety Tips."
+            "Within 'Renewal / Repurpose Options' give 2 practical ideas (one low-effort, one that requires more craft) and note environmental tradeoffs."
             f"\n\nProblem: {item_description}"
         )
 
         messages = [
-            {"role": "system", "content": "You are an expert repair guide generator. Produce clear Markdown output."},
+            {"role": "system", "content": "You are an expert repair and renewal guide generator. Produce clear Markdown output with distinct sections for Repair and Renewal/Repurpose options."},
             {"role": "user", "content": prompt}
         ]
 

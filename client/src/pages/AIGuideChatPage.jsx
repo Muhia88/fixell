@@ -74,8 +74,8 @@ const AiGuideChatPage = () => {
     const createNewChat = useCallback(() => {
         setActiveConversationId(null);
         setMessages([
-            { role: 'model', content: "Hi! I'm Fixie. What can I help you repair today?" }
-        ]);
+                { role: 'model', content: "Hi! I'm Fixie. What can I help you repair or renew today?" }
+            ]);
     }, []);
 
     useEffect(() => {
