@@ -21,7 +21,9 @@ const Navbar = () => {
 
       {/* Center: Navigation Links */}
       <div className="hidden md:flex space-x-8 text-gray-700 font-medium">
-        <Link to="/" className="hover:text-green-600 transition">Home</Link>
+        {!isLoggedIn && (
+          <Link to="/" className="hover:text-green-600 transition">Home</Link>
+        )}
         <Link to="/about" className="hover:text-green-600 transition">About</Link>
         <Link to="/marketplace" className="hover:text-green-600 transition">Marketplace</Link>
         <Link to="/my-listings" className="hover:text-green-600 transition">My Listings</Link>

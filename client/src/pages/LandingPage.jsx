@@ -1,4 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
 import heroImage from '../assets/images/hero section.jpg'; 
 
 
@@ -28,6 +30,15 @@ const FeatureCard = ({ icon, title, description }) => {
 };
 
 const App = () => {
+    const { isLoggedIn } = useAuth();
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        if (isLoggedIn) {
+            navigate('/impact');
+        }
+    }, [isLoggedIn, navigate]);
+
     const features = [
         {
             icon: WrenchIcon,
