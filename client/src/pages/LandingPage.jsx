@@ -2,7 +2,6 @@ import React from 'react';
 import heroImage from '../assets/images/hero section.jpg'; 
 
 
-//  Icon Components 
 const WrenchIcon = (props) => (
     <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 15v2m-6-4h.01M19 13h.01M15 13h.01M12 22v-4m5-4h2a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m6 0h2"></path></svg>
 );
@@ -15,7 +14,6 @@ const RecycleIcon = (props) => (
     <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356-2A8.001 8.001 0 004.582 19.94H4v1.077c.38.16.8.272 1.25.323l.1.006A9.957 9.957 0 0020 12c0-5.523-4.477-10-10-10a9.972 9.972 0 00-6.702 2.651l.858.914A8.001 8.001 0 0120 12c0 4.418-3.582 8-8 8s-8-3.582-8-8z"></path></svg>
 );
 
-// Modified Feature Card for horizontal display and hover effect
 const FeatureCard = ({ icon, title, description }) => {
     const Icon = icon;
     return (
