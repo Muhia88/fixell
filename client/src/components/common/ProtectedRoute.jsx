@@ -5,7 +5,6 @@ import { useAuth } from '../../hooks/useAuth';
 const ProtectedRoute = ({ children }) => {
   const { isLoggedIn, loading } = useAuth();
 
-  // While auth state is loading, you can return null or a loader
   if (loading) return null;
 
   if (!isLoggedIn) {

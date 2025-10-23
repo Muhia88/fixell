@@ -62,7 +62,6 @@ const LoginPage = () => {
                                     {error}
                                 </div>
                             )}
-
                             {/* Email Input */}
                             <div>
                                 <Input

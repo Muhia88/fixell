@@ -1,11 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 
-// Lightweight sessionStorage-backed cache hook.
-// key: string key for sessionStorage. If falsy, hook is disabled.
-// fetcher: async function that returns the data when called.
-// deps: dependency array that triggers a refetch when changed.
 export default function useSessionCache(key, fetcher, deps = [], maxAge = null) {
-  // stored shape in sessionStorage: { ts: number, value: any }
   const [data, setData] = useState(() => {
     if (!key) return null
     try {
@@ -13,7 +8,6 @@ export default function useSessionCache(key, fetcher, deps = [], maxAge = null) 
       if (!raw) return null
       const parsed = JSON.parse(raw)
       if (maxAge && parsed?.ts && Date.now() - parsed.ts > maxAge) {
-        // expired
   try { sessionStorage.removeItem(key) } catch { /* ignore */ }
         return null
       }
@@ -53,14 +47,11 @@ export default function useSessionCache(key, fetcher, deps = [], maxAge = null) 
     }
   }, [key, fetcher])
 
-  // Initial fetch only if there's no cached data
   useEffect(() => {
     if (!key || !fetcher) return
-    // only fetch if there's no data cached
     if (data === null) {
       doFetch()
     }
-    // serializedDeps included to allow consumers to force refetch by passing new deps
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, fetcher, serializedDeps])
 
