@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useCallback } from 'react';
 import api from '../api/axiosConfig';
 import Button from '../components/common/Button';
 import MarkdownRenderer from '../components/common/MarkdownRenderer';
@@ -70,6 +70,13 @@ const AiGuideChatPage = () => {
     const auth = useContext(AuthContext);
     const navigate = useNavigate();
 
+    const createNewChat = useCallback(() => {
+        setActiveConversationId(null);
+        setMessages([
+            { role: 'model', content: "Hi! I'm Fixie. What can I help you repair today?" }
+        ]);
+    }, []);
+
     useEffect(() => {
         if (auth.loading) return;
         if (!auth.isLoggedIn) {
@@ -97,7 +104,7 @@ const AiGuideChatPage = () => {
             }
         };
         fetchConversations();
-    }, [auth, navigate]);
+    }, [auth.loading, auth.isLoggedIn, navigate, createNewChat]);
 
     useEffect(() => {
         if (!activeConversationId) return;
@@ -121,13 +128,6 @@ const AiGuideChatPage = () => {
     const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
     const [renameTarget, setRenameTarget] = useState(null);
     const [renameTitle, setRenameTitle] = useState('');
-
-    const createNewChat = () => {
-        setActiveConversationId(null);
-        setMessages([
-            { role: 'model', content: "Hi! I'm Fixie. What can I help you repair today?" }
-        ]);
-    };
 
     const toast = useToast();
 
