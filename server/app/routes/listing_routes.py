@@ -22,12 +22,11 @@ def _resolve_status_filter(status_str):
     the DB enum labels when possible; otherwise we return the Python Enum member so SQLAlchemy
     can do the right thing.
     """
-    # normalize incoming
+    
     sf = (status_str or '').strip()
     if not sf:
         sf = 'active'
 
-    # Attempt to map to a ListingStatus member (by value or by name)
     member = None
     try:
         member = ListingStatus(sf)
@@ -37,8 +36,6 @@ def _resolve_status_filter(status_str):
         except Exception:
             member = ListingStatus.ACTIVE
 
-    # Prefer the enum member's value (e.g. 'active') which matches the model's intended stored value.
-    # This avoids returning the Enum.name (e.g. 'ACTIVE') which may not match the DB labels.
     try:
         return member.value
     except Exception:
@@ -67,7 +64,6 @@ def get_listings():
             status_filter = 'active'
 
         resolved = _resolve_status_filter(status_filter)
-        # resolved should be a string label; cast the DB enum to text to avoid SQLAlchemy Enum validation issues
         query = Listing.query.filter(cast(Listing.status, String) == resolved) \
                          .order_by(Listing.created_at.desc())
 
@@ -139,6 +135,7 @@ def get_single_listing(listing_id):
         return jsonify({"success": False, "message": "An error occurred"}), 500
 
 @listing_bp.route('', methods=['POST'])
+@listing_bp.route('/', methods=['POST', 'OPTIONS'])
 @login_required
 def create_listing():
     """
@@ -146,6 +143,14 @@ def create_listing():
     Creates a new listing (defaults to ACTIVE status) and logs an impact event.
     """
     try:
+        try:
+            current_app.logger.debug('Create listing request headers: %s', dict(request.headers))
+            current_app.logger.debug('Create listing form keys: %s', list(request.form.keys()))
+            current_app.logger.debug('Create listing file keys: %s', list(request.files.keys()))
+            current_app.logger.info('Authenticated user id (g.current_user_id): %s', getattr(g, 'current_user_id', None))
+        except Exception:
+            pass
+
         title = request.form.get('title')
         description = request.form.get('description')
         price = request.form.get('price')
@@ -154,7 +159,8 @@ def create_listing():
         location = request.form.get('location')
 
         if not title or not price:
-            return jsonify({'success': False, 'message': 'Title and price (KES) are required'}), 400
+            current_app.logger.warning('Create listing validation failed: missing title or price. form keys: %s files: %s', list(request.form.keys()), list(request.files.keys()))
+            return jsonify({'success': False, 'message': 'Title and price (KES) are required', 'form_keys': list(request.form.keys()), 'file_keys': list(request.files.keys())}), 400
 
         auth_user_id = getattr(g, 'current_user_id', None)
         if not auth_user_id:
@@ -299,7 +305,8 @@ def mark_listing_as_sold(listing_id):
             category=(listing.category or 'Other'),
             description=event_desc,
             estimated_weight_kg=estimated_weight,
-            money_saved_kes=sold_price_val
+            money_saved_kes=sold_price_val,
+            listing_id=listing.id
         )
         db.session.add(impact_event)
 
@@ -326,8 +333,6 @@ def delete_listing(listing_id):
         from app.services.supabase_service import delete_file_by_url
         for img in listing.images or []:
             try:
-                # Attempt to delete the image from Supabase storage
-                # delete_file_by_url will raise if it cannot determine the path or delete
                 delete_file_by_url(img)
             except Exception as e:
                 current_app.logger.warning(f"Failed to delete image {img}: {e}")

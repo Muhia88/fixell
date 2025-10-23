@@ -63,27 +63,38 @@ def get_user_impact():
         return jsonify({'success': False, 'message': 'Unauthorized'}), 401
 
     try:
-        # Count all impact events as items_saved, sum weight_diverted across all events,
-        # but only sum money_saved_kes for ITEM_SOLD events to avoid counting mock money
-        total_stats = db.session.query(
-            func.count(UserImpactEvent.id).label('items_saved'),
-            func.sum(UserImpactEvent.weight_diverted_kg).label('weight_diverted'),
-            func.sum(case((UserImpactEvent.event_type == 'ITEM_SOLD', UserImpactEvent.money_saved_kes), else_=0)).label('money_saved_kes')
-        ).filter(UserImpactEvent.user_id == user_id).first()
+        events = UserImpactEvent.query.filter_by(user_id=user_id).all()
+        money_saved = sum((e.money_saved_kes or 0) for e in events if e.event_type == 'ITEM_SOLD')
 
-        category_stats_raw = db.session.query(
-            UserImpactEvent.item_category,
-            func.count(UserImpactEvent.id).label('count')
-        ).filter(
-            UserImpactEvent.user_id == user_id,
-        ).group_by(UserImpactEvent.item_category).all()
+        per_listing = {}
+        sold_events_without_listing = []
+        for e in events:
+            w = e.weight_diverted_kg or 0
+            if e.event_type == 'ITEM_SOLD':
+                if e.listing_id:
+                    bucket = per_listing.setdefault(e.listing_id, {'sold_weight': 0.0, 'sold_count': 0})
+                    bucket['sold_weight'] += w
+                    bucket['sold_count'] += 1
+                else:
+                    sold_events_without_listing.append(e)
 
-        category_stats = [{'name': cat, 'value': count} for cat, count in category_stats_raw]
+        items_saved = len(per_listing) + len(sold_events_without_listing)
+
+        total_listing_weight = sum(bucket['sold_weight'] for bucket in per_listing.values())
+        total_weight = total_listing_weight + sum((e.weight_diverted_kg or 0) for e in sold_events_without_listing)
+
+        category_counts = {}
+        for e in events:
+            if e.event_type == 'ITEM_SOLD':
+                cat = e.item_category or 'Other'
+                category_counts[cat] = category_counts.get(cat, 0) + 1
+
+        category_stats = [{'name': k, 'value': v} for k, v in category_counts.items()]
 
         stats = {
-            'items_saved': total_stats.items_saved or 0, 
-            'weight_diverted': round(total_stats.weight_diverted or 0, 2),
-            'money_saved': round(total_stats.money_saved_kes or 0, 2)
+            'items_saved': items_saved,
+            'weight_diverted': round(total_weight or 0, 2),
+            'money_saved': round(money_saved or 0, 2)
         }
 
         return jsonify({
