@@ -23,14 +23,11 @@ export default function EditListingModal({ listing, onClose, onSaved }) {
   const save = async () => {
     setLoading(true); setError(null)
     try {
-      // if there are new files or images to remove, send multipart/form-data
       let res
       if (newFiles.length > 0 || toRemove.length > 0) {
         const fd = new FormData()
         Object.entries(form).forEach(([k, v]) => { if (v !== undefined && v !== null) fd.append(k, v) })
-        // append new files
         newFiles.forEach(f => fd.append('images', f))
-        // include remove list as JSON string
         fd.append('remove_images', JSON.stringify(toRemove))
         res = await api.put(`/listings/${listing.id}`, fd, { headers: { 'Content-Type': 'multipart/form-data' } })
       } else {

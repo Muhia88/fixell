@@ -17,7 +17,7 @@ const initialState = {
 export default function CreateListingPage() {
   const [step, setStep] = useState(1)
   const [form, setForm] = useState(initialState)
-  const [images, setImages] = useState([]) // File objects
+  const [images, setImages] = useState([])
   const auth = useContext(AuthContext)
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
@@ -40,7 +40,6 @@ export default function CreateListingPage() {
   const handleSubmit = async () => {
     setLoading(true)
     setMessage(null)
-    // client-side validation
     if (!form.title || !form.price) {
       setMessage('Please provide a title and price for your listing.')
       setLoading(false)
@@ -66,7 +65,6 @@ export default function CreateListingPage() {
         setMessage('Listing created successfully')
         setForm(initialState)
         setImages([])
-        // go to my listings so they can see it
         navigate('/my-listings')
       } else {
         setMessage(res.data.message || 'Unexpected response')
