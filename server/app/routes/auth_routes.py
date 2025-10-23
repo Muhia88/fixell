@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, current_app
 from app.models.user import User
-from app import db  # Assuming 'db' is initialized
+from app import db 
 import jwt
 import datetime
 
@@ -13,29 +13,33 @@ def register():
     email = data.get('email')
     password = data.get('password')
     name = data.get('name')
+    phone_number = data.get('phone_number')
 
     if not email or not password:
         return jsonify({'message': 'Email and password are required'}), 400
 
+    if phone_number and not phone_number.replace('+', '').isdigit():
+         return jsonify({'message': 'Invalid phone number format'}), 400
+
     if User.query.filter_by(email=email).first():
         return jsonify({'message': 'User with that email already exists'}), 409
 
-    # Create a new User instance without passing plaintext password to the constructor
-    new_user = User(email=email, name=name)
-    # Hash and set the password using the model helper
+    if phone_number and User.query.filter_by(phone_number=phone_number).first():
+         return jsonify({'message': 'User with that phone number already exists'}), 409
+
+    new_user = User(email=email, name=name, phone_number=phone_number)
     new_user.set_password(password)
 
     try:
-        # Add to database and commit
         db.session.add(new_user)
         db.session.commit()
+        user_dict = new_user.to_dict(include_phone=False)
         return jsonify({
             'message': 'User registered successfully',
-            'user': new_user.to_dict()
+            'user': user_dict
         }), 201
     except Exception as e:
         db.session.rollback()
-        # Log the error for debugging
         current_app.logger.error(f"Registration error: {e}")
         return jsonify({'message': 'An error occurred during registration'}), 500
 
@@ -49,36 +53,30 @@ def login():
     if not email or not password:
         return jsonify({'message': 'Email and password are required'}), 400
 
-    # 1. Check if user exists
     user = User.query.filter_by(email=email).first()
 
-    # 2. Check password
     if user and user.check_password(password):
-        # 3. User is authenticated, generate JWT
-        # current_app.config['SECRET_KEY'] should be set in server/config.py
-        secret_key = current_app.config.get('SECRET_KEY') 
+        secret_key = current_app.config.get('SECRET_KEY')
         if not secret_key:
              return jsonify({'message': 'Server misconfigured: SECRET_KEY not set'}), 500
-             
+
         token_payload = {
             'user_id': user.id,
-            # Token expiration set to 24 hours (timezone-aware UTC)
-            'exp': datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=24), 
+            'exp': datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=24),
             'iat': datetime.datetime.now(datetime.timezone.utc)
         }
-        
+
         jwt_token = jwt.encode(token_payload, secret_key, algorithm='HS256')
 
+        user_dict = user.to_dict(include_phone=False)
         return jsonify({
             'message': 'Login successful',
-            # Important: return the token
-            'token': jwt_token, 
-            'user': user.to_dict()
+            'token': jwt_token,
+            'user': user_dict
         }), 200
     else:
-        # Authentication failed
         return jsonify({'message': 'Invalid email or password'}), 401
-    
+
 
 @auth_bp.route('/profile', methods=['GET', 'PUT'])
 def profile():
@@ -91,7 +89,6 @@ def profile():
     if auth_header.startswith('Bearer '):
         token = auth_header.split(' ', 1)[1].strip()
     elif auth_header:
-        # tolerate bare token as well
         token = auth_header.strip()
 
     if not token:
@@ -102,7 +99,6 @@ def profile():
         return jsonify({'message': 'Server misconfigured: SECRET_KEY not set'}), 500
 
     try:
-        # Decode token and get user_id
         payload = jwt.decode(token, secret_key, algorithms=['HS256'])
         user_id = payload.get('user_id')
         if not user_id:
@@ -111,28 +107,45 @@ def profile():
         user = User.query.get(user_id)
         if not user:
             return jsonify({'message': 'User not found'}), 404
-        
-        # --- Handle GET Request: Return Profile Data ---
+
         if request.method == 'GET':
-            return jsonify({'user': user.to_dict()}), 200
+            return jsonify({'user': user.to_dict(include_phone=True)}), 200
 
-        # --- Handle PUT Request: Update Profile Data ---
         elif request.method == 'PUT':
-            data = request.get_json()
-            new_name = data.get('name')
+            data = request.get_json() or {}
 
-            if not new_name:
-                return jsonify({'message': 'Name field is required for update'}), 400
+            if 'name' in data:
+                new_name = data.get('name')
+                if not new_name or not isinstance(new_name, str) or new_name.strip() == '':
+                    return jsonify({'message': 'Name field cannot be empty'}), 400
+                user.name = new_name.strip()
 
-            # Update user's name
-            user.name = new_name
-            db.session.commit()
-            
+            if 'phone_number' in data:
+                new_phone = data.get('phone_number')
+                if new_phone:
+                    normalized = str(new_phone).strip()
+                    if not normalized.replace('+', '').isdigit():
+                        return jsonify({'message': 'Invalid phone number format'}), 400
+
+                    existing = User.query.filter_by(phone_number=normalized).first()
+                    if existing and existing.id != user.id:
+                        return jsonify({'message': 'Phone number already in use'}), 409
+
+                    user.phone_number = normalized
+                else:
+                    user.phone_number = None
+
+            try:
+                db.session.commit()
+            except Exception as e:
+                db.session.rollback()
+                current_app.logger.error(f"Error updating profile: {e}")
+                return jsonify({'message': 'Failed to update profile'}), 500
+
             return jsonify({
                 'message': 'Profile updated successfully',
-                'user': user.to_dict()
+                'user': user.to_dict(include_phone=True)
             }), 200
-
 
     except jwt.ExpiredSignatureError:
         return jsonify({'message': 'Token has expired'}), 401

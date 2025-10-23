@@ -145,18 +145,13 @@ def list_models():
 
 
 
-
-
-
-
-
-
 @guide_bp.route('/conversations', methods=['GET'])
 @login_required
 def list_conversations():
     user_id = getattr(g, 'current_user_id', None)
     convs = Conversation.query.filter_by(user_id=user_id).order_by(Conversation.created_at.desc()).all()
     return jsonify([c.to_dict() for c in convs]), 200
+
 
 
 @guide_bp.route('/conversations', methods=['POST'])
@@ -251,6 +246,19 @@ def rename_conversation(conv_id):
         conv.title = title[:255]
         db.session.add(conv)
         db.session.commit()
+        try:
+            from app.services.impact_service import create_impact_event
+            evt = create_impact_event(
+                user_id=user_id,
+                event_type='CONVERSATION_RENAMED',
+                category='Other',
+                description=f"Renamed conversation '{conv.title}'",
+                estimated_weight_kg=0,
+            )
+            db.session.add(evt)
+            db.session.commit()
+        except Exception:
+            current_app.logger.exception('Failed to record rename activity')
         return jsonify(conv.to_dict()), 200
     except Exception as e:
         current_app.logger.exception('Failed to rename conversation %s: %s', conv_id, e)
@@ -270,6 +278,19 @@ def delete_conversation(conv_id):
         ConversationMessage.query.filter_by(conversation_id=conv_id).delete()
         db.session.delete(conv)
         db.session.commit()
+        try:
+            from app.services.impact_service import create_impact_event
+            evt = create_impact_event(
+                user_id=user_id,
+                event_type='CONVERSATION_DELETED',
+                category='Other',
+                description=f"Deleted conversation '{conv.title}'",
+                estimated_weight_kg=0,
+            )
+            db.session.add(evt)
+            db.session.commit()
+        except Exception:
+            current_app.logger.exception('Failed to record delete activity')
         return '', 204
     except Exception as e:
         current_app.logger.exception('Failed to delete conversation %s: %s', conv_id, e)
