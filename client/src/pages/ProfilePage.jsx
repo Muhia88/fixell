@@ -1,16 +1,15 @@
 import React, { useEffect, useState } from "react";
-import { useAuth } from "../hooks/useAuth"; // FIX: Removed .js extension to resolve module path error
+import { useAuth } from "../hooks/useAuth";
 import api from "../api/axiosConfig";
 import { useNavigate } from "react-router-dom";
-import useSessionCache from '../hooks/useSessionCache'
 
-// Component for the Edit Form
 const EditProfileForm = ({ user, onSave, onCancel, isSubmitting, updateError }) => {
   const [name, setName] = useState(user.name || "");
+  const [phone, setPhone] = useState(user.phone_number || "");
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSave(name);
+    onSave({ name, phone_number: phone });
   };
 
   return (
@@ -22,36 +21,31 @@ const EditProfileForm = ({ user, onSave, onCancel, isSubmitting, updateError }) 
             Full Name
           </label>
           <input
-            id="name"
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
+            id="name" type="text" value={name} onChange={(e) => setName(e.target.value)}
             required
-            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 transition duration-150"
+            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
             disabled={isSubmitting}
           />
         </div>
 
-        {updateError && (
-          <p className="text-sm text-red-600 mb-4 p-3 bg-red-50 rounded-md border border-red-200">
-            Error: {updateError}
-          </p>
-        )}
+        <div className="mb-4">
+          <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+          <input
+            id="phone"
+            type="tel"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="+254700000000"
+            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+            disabled={isSubmitting}
+          />
+        </div>
+
+        {updateError && ( <p className="text-sm text-red-600 mb-4 p-3 bg-red-50 rounded-md">{updateError}</p> )}
 
         <div className="flex justify-end gap-3 mt-6">
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={isSubmitting}
-            className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-100 transition duration-150"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="px-6 py-2 bg-indigo-600 text-white font-medium rounded-md hover:bg-indigo-700 disabled:opacity-50 transition duration-150 shadow-md"
-          >
+          <button type="button" onClick={onCancel} disabled={isSubmitting} className="px-6 py-2 border rounded-md hover:bg-gray-100">Cancel</button>
+          <button type="submit" disabled={isSubmitting} className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50">
             {isSubmitting ? "Saving..." : "Save Changes"}
           </button>
         </div>
@@ -62,57 +56,29 @@ const EditProfileForm = ({ user, onSave, onCancel, isSubmitting, updateError }) 
 
 
 const ProfilePage = () => {
-  const { token, logout } = useAuth();
+  const { user, loading, logout, updateLocalUser } = useAuth();
   const navigate = useNavigate();
-
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  
-  // New state for editing
   const [isEditing, setIsEditing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [updateError, setUpdateError] = useState("");
 
+  useEffect(() => {
+    if (!loading && !user) {
+        navigate("/login");
+    }
+  }, [loading, user, navigate]);
 
-  // Function to handle the profile update (PUT request)
-  // Use cache for profile data — key scoped per-user
-  const userId = user?.id || user?.user_id || null
-  const profileKey = userId ? `profile_${userId}` : null
-  const { data: cachedProfile } = useSessionCache(
-    profileKey,
-    async () => {
-      const res = await api.get('/auth/profile')
-      return res.data?.user || res.data
-    },
-    [token, userId],
-    1000 * 60 * 30 // default 30 minutes TTL
-  )
 
-  const handleUpdateProfile = async (newName) => {
+  const handleUpdateProfile = async (updatedData) => { 
     setIsSubmitting(true);
     setUpdateError("");
-
     try {
-      // Use axios client which attaches Authorization header via interceptor
-      const res = await api.put('/auth/profile', { name: newName });
-
-      // Update local state with new user data
-  const updated = res.data.user || res.data
-  setUser(updated);
-  // update cache for this user key
-  try { if (profileKey) sessionStorage.setItem(profileKey, JSON.stringify({ ts: Date.now(), value: updated })) } catch { /* ignore */ }
-      setIsEditing(false); // Exit edit mode
-
+      const res = await api.put('/auth/profile', updatedData); 
+      const updatedUser = res.data.user || res.data;
+      updateLocalUser(updatedUser); 
+      setIsEditing(false);
     } catch (err) {
-      // Ignore cancellation errors from axios/AbortController
-      const isCanceled = err?.code === 'ERR_CANCELED' || err?.message === 'canceled' || err?.name === 'CanceledError';
-      if (isCanceled) {
-        // do nothing — request was intentionally cancelled
-        return;
-      }
-
-      const message = err.response?.data?.message || err.message || "An unknown error occurred during update.";
+      const message = err.response?.data?.message || err.message || "Update failed.";
       setUpdateError(message);
       console.error("Profile update error:", err);
     } finally {
@@ -120,178 +86,68 @@ const ProfilePage = () => {
     }
   };
 
-
-  // Effect to fetch the profile data on load
-  useEffect(() => {
-    if (!token) {
-      navigate("/login");
-      return;
-    }
-
-    // hydrate from cache if available
-    if (cachedProfile) {
-      setUser(cachedProfile)
-      setLoading(false)
-      return
-    }
-
-    const controller = new AbortController();
-    const fetchProfile = async () => {
-      setLoading(true);
-      setError("");
-      try {
-        // Use axios client so baseURL and token interceptor are used
-        const res = await api.get('/auth/profile', { signal: controller.signal });
-        // server returns { user: { ... } }
-        const payload = res.data.user || res.data
-        setUser(payload);
-  try { sessionStorage.setItem('profile', JSON.stringify(payload)) } catch { /* ignore */ }
-      } catch (err) {
-        // axios uses different shapes for cancellation errors — detect them here
-        const isCanceled = err?.code === 'ERR_CANCELED' || err?.message === 'canceled' || err?.name === 'CanceledError';
-        if (isCanceled) {
-          // ignore canceled requests (component unmounted or manual abort)
-          return;
-        }
-
-        // Prefer server-provided message
-        const serverMessage = err.response?.data?.message;
-        const message = serverMessage || err.message || "An error occurred";
-        setError(message);
-
-        // If the server returned 401 or a token-related message, force logout
-        const status = err.response?.status;
-        if (status === 401 || (message && /token|expired|invalid|unauthorized/i.test(message))) {
-          logout();
-          navigate("/login");
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProfile();
-    return () => controller.abort();
-  }, [token, navigate, logout, cachedProfile]);
-
-  // --- Conditional Rendering for Loading/Error States ---
-
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
-        <div className="text-gray-600">Loading profile...</div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-red-50 p-6">
-        <div className="max-w-lg w-full bg-white p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold text-red-700 mb-2">Error</h2>
-          <p className="text-sm text-red-600 mb-4">{error}</p>
-          <div className="flex gap-3">
-            <button
-              onClick={() => window.location.reload()}
-              className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
-            >
-              Retry
-            </button>
-            <button
-              onClick={() => { logout(); navigate("/login"); }}
-              className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
-            >
-              Sign Out
-            </button>
-          </div>
-        </div>
-      </div>
-    );
+    return <div className="text-gray-600">Loading profile...</div>;
   }
 
   if (!user) {
-    return null;
+      return null; 
   }
 
-  // --- Main Profile View/Edit Form ---
   return (
     <div className="min-h-screen w-full bg-gray-50 p-6 font-sans">
       <div className="max-w-5xl mx-auto">
         <div className="bg-white shadow-lg rounded-2xl overflow-hidden">
           <div className="md:flex">
-            {/* Left column: avatar and actions */}
-            <div className="md:w-1/3 bg-gradient-to-b from-indigo-50 to-white p-8 flex flex-col items-center text-center">
+            <div className="md:w-1/3 bg-gradient-to-b from-indigo-50 to-white p-8 flex flex-col items-center">
               <div className="relative">
                 <div className="h-32 w-32 rounded-full bg-indigo-100 flex items-center justify-center text-4xl font-extrabold text-indigo-700 border-4 border-white shadow-lg">
                   {user.name ? user.name.charAt(0).toUpperCase() : "U"}
                 </div>
                 <div className="absolute -bottom-2 right-0">
-                  <button
-                    onClick={() => setIsEditing(true)}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-full text-sm font-medium shadow hover:bg-indigo-700 transition"
-                  >
-                    Edit
-                  </button>
+                    <button onClick={() => setIsEditing(true)} className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-full text-sm font-medium shadow hover:bg-indigo-700 transition">Edit</button>
                 </div>
               </div>
-
               <h3 className="mt-6 text-xl font-bold text-gray-900">{user.name || 'Unnamed User'}</h3>
-              <p className="mt-1 text-sm text-gray-500">{user.role || 'Member'}</p>
-
+              <p className="mt-1 text-sm text-gray-500">{user.email}</p> {/* Show email */}
+              <p className="mt-1 text-sm text-gray-500">{user.phone_number || 'No phone number'}</p>
               <div className="mt-6 w-full">
-                <button
-                  onClick={() => { logout(); navigate('/login'); }}
-                  className="w-full block px-4 py-2 text-center bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition"
-                >
-                  Sign Out
-                </button>
+                  <button onClick={() => { logout(); navigate('/login'); }} className="w-full block px-4 py-2 text-center bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition">Sign Out</button>
               </div>
             </div>
-
-            {/* Right column: details */}
             <div className="md:w-2/3 p-8">
               {isEditing ? (
-                <EditProfileForm 
-                  user={user} 
-                  onSave={handleUpdateProfile} 
-                  onCancel={() => { setIsEditing(false); setUpdateError(''); }} 
+                <EditProfileForm
+                  user={user}
+                  onSave={handleUpdateProfile}
+                  onCancel={() => { setIsEditing(false); setUpdateError(''); }}
                   isSubmitting={isSubmitting}
                   updateError={updateError}
                 />
               ) : (
                 <div>
                   <h2 className="text-2xl font-semibold text-gray-900 mb-4">Profile Information</h2>
-
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="p-4 bg-gray-50 rounded-lg">
-                      <p className="text-xs uppercase font-medium text-gray-400">Email</p>
-                      <p className="mt-1 text-base font-semibold text-gray-800 break-words">{user.email || '—'}</p>
+                      <p className="text-xs uppercase text-gray-400">Full Name</p>
+                      <p className="mt-1 font-semibold text-gray-800">{user.name || '—'}</p>
                     </div>
-
                     <div className="p-4 bg-gray-50 rounded-lg">
-                      <p className="text-xs uppercase font-medium text-gray-400">User ID</p>
-                      <p className="mt-1 text-base font-semibold text-gray-800 break-all">{user.id || user.user_id || '—'}</p>
+                      <p className="text-xs uppercase text-gray-400">Email</p>
+                      <p className="mt-1 font-semibold text-gray-800 break-words">{user.email || '—'}</p>
                     </div>
-
                     <div className="p-4 bg-gray-50 rounded-lg">
-                      <p className="text-xs uppercase font-medium text-gray-400">Joined</p>
-                      <p className="mt-1 text-base font-semibold text-gray-800">{user.created_at ? new Date(user.created_at).toLocaleDateString() : '—'}</p>
+                      <p className="text-xs uppercase text-gray-400">Phone</p>
+                      <p className="mt-1 font-semibold text-gray-800">{user.phone_number || '—'}</p>
                     </div>
-
                     <div className="p-4 bg-gray-50 rounded-lg">
-                      <p className="text-xs uppercase font-medium text-gray-400">Extra</p>
-                      <p className="mt-1 text-base font-semibold text-gray-800">{user.extra || 'Not set'}</p>
+                      <p className="text-xs uppercase text-gray-400">Joined</p>
+                      <p className="mt-1 font-semibold text-gray-800">{user.created_at ? new Date(user.created_at).toLocaleDateString() : '—'}</p>
                     </div>
                   </div>
-
-                  <div className="mt-6 flex gap-3 justify-end">
-                    <button
-                      onClick={() => setIsEditing(true)}
-                      className="px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition"
-                    >
-                      Edit Profile
-                    </button>
-                  </div>
+                   <div className="mt-6 flex gap-3 justify-end">
+                       <button onClick={() => setIsEditing(true)} className="px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition">Edit Profile</button>
+                   </div>
                 </div>
               )}
             </div>
