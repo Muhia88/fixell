@@ -19,12 +19,13 @@ const StatCard = ({ title, value, unit, icon: Icon, color }) => (
     </div>
 );
 
-// Bar Chart Component
 const ImpactBarChart = ({ data }) => {
     if (!data || data.length === 0) {
         return <p className="text-sm text-gray-500">No category data yet. Start listing items!</p>;
     }
     const maxValue = Math.max(...data.map(d => d.value), 1); 
+    
+    const maxBarHeightRem = 9.5;
 
     return (
         <div className="flex items-end space-x-4 h-48">
@@ -33,7 +34,7 @@ const ImpactBarChart = ({ data }) => {
                     <div className="text-lg font-semibold text-gray-700">{item.value}</div>
                     <div
                         className="w-full bg-green-400 rounded-t-lg transition-all duration-500"
-                        style={{ height: `${(item.value / maxValue) * 100}%` }}
+                        style={{ height: `${(item.value / maxValue) * maxBarHeightRem}rem` }}
                         title={`${item.name}: ${item.value} items`}
                     ></div>
                     <div className="text-xs font-medium text-gray-500 mt-2">{item.name}</div>
@@ -43,7 +44,7 @@ const ImpactBarChart = ({ data }) => {
     );
 };
 
-// Activity Item Component
+
 const ActivityItem = ({ icon: Icon, text, time, color }) => (
     <div className="flex items-start space-x-3">
         <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${color}`}>
@@ -56,7 +57,7 @@ const ActivityItem = ({ icon: Icon, text, time, color }) => (
     </div>
 );
 
-// Main Dashboard Page
+
 const ImpactDashboardPage = () => {
     const { user } = useAuth();
     const [impact, setImpact] = useState(null);
@@ -153,7 +154,7 @@ const ImpactDashboardPage = () => {
                 <p className="text-gray-600 mt-1">See the amazing impact you've made.</p>
 
                 {/* Stats Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+                <div className="mt-20 grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
                     <StatCard
                         title="Items Saved from Landfill"
                         value={impact?.stats?.items_saved || 0}
