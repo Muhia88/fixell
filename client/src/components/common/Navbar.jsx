@@ -26,9 +26,13 @@ const Navbar = () => {
         )}
         <Link to="/about" className="hover:text-green-600 transition">About</Link>
         <Link to="/marketplace" className="hover:text-green-600 transition">Marketplace</Link>
-        <Link to="/my-listings" className="hover:text-green-600 transition">My Listings</Link>
-        <Link to="/impact" className="hover:text-green-600 transition">My Impact</Link>
-        <Link to="/generate-guide" className="hover:text-green-600 transition">AI Assistant</Link>
+        {isLoggedIn && (
+          <>
+            <Link to="/my-listings" className="hover:text-green-600 transition">My Listings</Link>
+            <Link to="/impact" className="hover:text-green-600 transition">My Impact</Link>
+            <Link to="/generate-guide" className="hover:text-green-600 transition">AI Assistant</Link>
+          </>
+        )}
         <Link to="/support" className="hover:text-green-600 transition">Support</Link>
       </div>
 

@@ -45,7 +45,7 @@ function App() {
               <Route path="/about" element={<AboutPage />} />
               <Route path="/listing/:id" element={<ViewListingPage />} />
               <Route path="/support" element={<Support />} />
-              <Route path="/generate-guide" element={<AiGuideChatPage />} /> 
+              <Route path="/generate-guide" element={<ProtectedRoute><AiGuideChatPage /></ProtectedRoute>} /> 
             </Routes>
           </main>
           <Footer />
