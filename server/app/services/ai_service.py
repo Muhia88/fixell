@@ -1,7 +1,7 @@
 import os
 from flask import current_app
 from typing import List, Dict
-import json # Import the json module
+import json 
 
 
 def _import_openai_client():
@@ -9,7 +9,6 @@ def _import_openai_client():
         from openai import OpenAI as OpenAIClient
         return OpenAIClient
     except Exception:
-        # Do not fail import time; raise when client is actually required
         return None
 
 
@@ -86,7 +85,6 @@ def generate_chat_response(messages: List[Dict[str, str]]) -> str:
         client = _get_openai_client()
         model = current_app.config.get('OPENAI_CHAT_MODEL', 'gpt-4o-mini')
 
-        #System prompt: the assistant persona and rules
         system_prompt = """
         You are 'Fixell-Bot', an expert, patient, and safety-conscious repair assistant. Follow the 'Step, Confirm, Continue' interactive approach and always include clear safety guidance.
         """
