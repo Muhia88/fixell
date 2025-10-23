@@ -53,13 +53,15 @@ def test_user_impact_and_activity_endpoints():
         data = resp.get_json()
         assert data['success'] is True
         stats = data['stats']
-        # items_saved should equal number of events
-        assert stats['items_saved'] == 6
-        # weight_diverted should be sum of weight_diverted_kg
-        expected_weight = sum(e.weight_diverted_kg for e in events)
+
+        # According to new policy, only ITEM_SOLD events count toward impact totals.
+        sold_events = [e for e in events if e.event_type == 'ITEM_SOLD']
+        expected_items_saved = len(sold_events)
+        expected_weight = sum(e.weight_diverted_kg for e in sold_events)
+        expected_money = sum(e.money_saved_kes for e in sold_events)
+
+        assert stats['items_saved'] == expected_items_saved
         assert abs(stats['weight_diverted'] - round(expected_weight, 2)) < 0.01
-        # money_saved should be sum of money_saved_kes
-        expected_money = sum(e.money_saved_kes for e in events)
         assert abs(stats['money_saved'] - round(expected_money, 2)) < 0.01
 
         # call activity endpoint - should return 5 most recent events ordered desc
@@ -72,3 +74,38 @@ def test_user_impact_and_activity_endpoints():
         # Ensure ordering: most recent first
         times = [datetime.fromisoformat(a['created_at']) for a in activity]
         assert all(times[i] >= times[i+1] for i in range(len(times)-1))
+
+
+def test_deduplication_by_listing_id():
+    """Ensure that when both a listing event and an ITEM_SOLD exist for the same listing_id,
+    the aggregation uses the ITEM_SOLD weight (not double-counting)."""
+    app = create_app()
+    app.config['TESTING'] = True
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
+
+    with app.app_context():
+        db.create_all()
+        user = User(email='dedupe@example.com', password='pw', name='Dedupe')
+        db.session.add(user)
+        db.session.commit()
+
+        # create a listing event (weight 2.0) and later an ITEM_SOLD for same listing_id (weight 3.5)
+        e1 = UserImpactEvent(user_id=user.id, event_type='LISTING', item_category='Furniture', description='listed', weight_diverted_kg=2.0, money_saved_kes=0, listing_id=42)
+        e2 = UserImpactEvent(user_id=user.id, event_type='ITEM_SOLD', item_category='Furniture', description='sold', weight_diverted_kg=3.5, money_saved_kes=500, listing_id=42)
+        # also add an unrelated event without listing_id
+        e3 = UserImpactEvent(user_id=user.id, event_type='GUIDE_SAVED', item_category='Books', description='guide', weight_diverted_kg=1.0, money_saved_kes=0)
+        db.session.add_all([e1, e2, e3])
+        db.session.commit()
+
+        token = make_token(app, user.id)
+        client = app.test_client()
+        resp = client.get('/api/users/impact', headers={'Authorization': f'Bearer {token}'})
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data['success'] is True
+        stats = data['stats']
+
+        # weight should be: prefer ITEM_SOLD weight for listing_id 42 (3.5) + unrelated 1.0 = 4.5
+        assert abs(stats['weight_diverted'] - 4.5) < 0.01
+        # money_saved should be 500
+        assert abs(stats['money_saved'] - 500) < 0.01

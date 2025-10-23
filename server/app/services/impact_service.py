@@ -3,7 +3,7 @@ from flask import current_app
 
 def create_impact_event(user_id, event_type, category, description,
                         estimated_weight_kg: float,
-                        money_saved_kes=None, money_override=None):
+                        money_saved_kes=None, money_override=None, listing_id=None):
     """
     Creates and returns a new UserImpactEvent object.
     Money saved is now only provided for ITEM_SOLD events.
@@ -34,7 +34,8 @@ def create_impact_event(user_id, event_type, category, description,
         item_category=category or 'Other',
         description=description,
         weight_diverted_kg=estimated_weight_kg,
-        money_saved_kes=final_money_saved 
+        money_saved_kes=final_money_saved,
+        listing_id=listing_id
     )
 
     return event

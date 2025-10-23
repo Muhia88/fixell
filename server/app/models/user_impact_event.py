@@ -13,7 +13,9 @@ class UserImpactEvent(db.Model):
     item_category = db.Column(db.String(50), nullable=False, default='Other')
     description = db.Column(db.String(255), nullable=True)
     weight_diverted_kg = db.Column(db.Float, nullable=False, default=0)
-    money_saved_kes = db.Column(db.Float, nullable=True, default=0) 
+    money_saved_kes = db.Column(db.Float, nullable=True, default=0)
+    # Optional link back to a listing so events can be traced to a specific item
+    listing_id = db.Column(db.Integer, db.ForeignKey('listings.id'), nullable=True, index=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     user = db.relationship('User', backref=db.backref('impact_events', lazy='dynamic'))
 
@@ -25,6 +27,7 @@ class UserImpactEvent(db.Model):
             "item_category": self.item_category,
             "description": self.description,
             "weight_diverted_kg": self.weight_diverted_kg,
-            "money_saved_kes": self.money_saved_kes, 
+            "money_saved_kes": self.money_saved_kes,
+            "listing_id": self.listing_id,
             "created_at": self.created_at.isoformat(),
         }
