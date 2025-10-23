@@ -135,6 +135,19 @@ def profile():
                 else:
                     user.phone_number = None
 
+            if 'email' in data:
+                new_email = (data.get('email') or '').strip().lower()
+                if not new_email:
+                    return jsonify({'message': 'Email cannot be empty'}), 400
+                # basic email format check
+                import re
+                if not re.match(r'^[^\s@]+@[^\s@]+\.[^\s@]+$', new_email):
+                    return jsonify({'message': 'Invalid email format'}), 400
+                existing_email = User.query.filter_by(email=new_email).first()
+                if existing_email and existing_email.id != user.id:
+                    return jsonify({'message': 'Email already in use'}), 409
+                user.email = new_email
+
             try:
                 db.session.commit()
             except Exception as e:

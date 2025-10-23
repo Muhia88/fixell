@@ -5,14 +5,27 @@ import { useNavigate } from "react-router-dom";
 import { User } from 'lucide-react';
 import ProfileIcon from '../components/common/ProfileIcon';
 import Spinner from '../components/common/Spinner';
+import { useToast } from '../components/common/useToast';
 
 const EditProfileForm = ({ user, onSave, onCancel, isSubmitting, updateError }) => {
   const [name, setName] = useState(user.name || "");
+  const [email, setEmail] = useState(user.email || "");
   const [phone, setPhone] = useState(user.phone_number || "");
+  const [emailError, setEmailError] = useState('');
+
+  const validateEmail = (val) => {
+    if (!val || val.trim() === '') return 'Email is required.';
+    // simple email regex — good enough for client-side validation
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(val) ? '' : 'Please enter a valid email address.';
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSave({ name, phone_number: phone });
+    const err = validateEmail(email);
+    setEmailError(err);
+    if (err) return;
+    onSave({ name, phone_number: phone, email });
   };
 
     return (
@@ -26,9 +39,24 @@ const EditProfileForm = ({ user, onSave, onCancel, isSubmitting, updateError }) 
           <input
             id="name" type="text" value={name} onChange={(e) => setName(e.target.value)}
             required
-            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
             disabled={isSubmitting}
           />
+        </div>
+
+        <div className="mb-4">
+          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+          <input
+            id="email"
+            type="email"
+            value={email}
+            onChange={(e) => { setEmail(e.target.value); setEmailError(validateEmail(e.target.value)); }}
+            required
+            placeholder="you@example.com"
+            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
+            disabled={isSubmitting}
+          />
+          {emailError && <p className="text-sm text-red-600 mt-1">{emailError}</p>}
         </div>
 
         <div className="mb-4">
@@ -39,7 +67,7 @@ const EditProfileForm = ({ user, onSave, onCancel, isSubmitting, updateError }) 
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             placeholder="+254700000000"
-            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
             disabled={isSubmitting}
           />
         </div>
@@ -48,7 +76,7 @@ const EditProfileForm = ({ user, onSave, onCancel, isSubmitting, updateError }) 
 
         <div className="flex justify-end gap-3 mt-6">
           <button type="button" onClick={onCancel} disabled={isSubmitting} className="px-6 py-2 border rounded-md hover:bg-gray-100">Cancel</button>
-          <button type="submit" disabled={isSubmitting} className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50">
+          <button type="submit" disabled={isSubmitting} className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50">
             {isSubmitting ? "Saving..." : "Save Changes"}
           </button>
         </div>
@@ -61,6 +89,7 @@ const EditProfileForm = ({ user, onSave, onCancel, isSubmitting, updateError }) 
 const ProfilePage = () => {
   const { user, loading, logout, updateLocalUser } = useAuth();
   const navigate = useNavigate();
+  const toast = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [updateError, setUpdateError] = useState("");
@@ -79,7 +108,8 @@ const ProfilePage = () => {
       const res = await api.put('/auth/profile', updatedData); 
       const updatedUser = res.data.user || res.data;
       updateLocalUser(updatedUser); 
-      setIsEditing(false);
+  setIsEditing(false);
+  toast?.success({ title: 'Profile updated', message: 'Your profile was updated successfully.' });
     } catch (err) {
       const message = err.response?.data?.message || err.message || "Update failed.";
       setUpdateError(message);
