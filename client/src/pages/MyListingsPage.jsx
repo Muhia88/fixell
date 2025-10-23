@@ -156,9 +156,10 @@ export default function MyListingsPage() {
         <h1 className="text-3xl font-bold mb-3">My Active Listings</h1>
         <p className="text-sm opacity-90">Manage the items you're currently selling</p>
          {/* Link to Sold Items Page*/}
-         <Link to="/my-listings/sold" className="mt-4 text-white underline hover:text-gray-200 text-sm">
-             View Sold Items
-         </Link>
+         <div className="mt-4 flex items-center space-x-4">
+           <Link to="/my-listings/sold" className="text-white underline hover:text-gray-200 text-sm">View Sold Items</Link>
+           <Button onClick={() => navigate('/create-listing')} variant="secondary">Create Listing</Button>
+         </div>
       </div>
 
       <div className="flex-1 w-full px-4 md:px-8 py-6 flex flex-col">
