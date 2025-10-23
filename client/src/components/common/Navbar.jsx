@@ -2,6 +2,7 @@ import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from '../../hooks/useAuth';
 import fixellLogo from "../../assets/logos/fixell-logo.png";
+import ProfileIcon from './ProfileIcon';
 
 const Navbar = () => {
   const { isLoggedIn, logout, user } = useAuth();
@@ -33,16 +34,10 @@ const Navbar = () => {
       <div className="flex items-center space-x-4">
         {isLoggedIn ? (
           <>
-            <Link
-              to="/profile"
-              aria-label="View profile"
-              className="text-gray-700 font-medium hover:text-green-600 transition flex items-center space-x-2"
-            >
-              <span className="hidden md:inline">Hi! {user?.name?.split(' ')[0] || user?.email || 'User'}</span>
-              <svg className="w-6 h-6 md:hidden text-gray-700" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-              </svg>
-            </Link>
+            <div className="flex items-center space-x-3">
+              <div className="hidden md:block text-gray-700 font-medium">Hi! {user?.name?.split(' ')[0] || user?.email || 'User'}</div>
+              <ProfileIcon initials={user?.name ? user.name.charAt(0).toUpperCase() : ''} size={36} onClick={() => navigate('/profile')} ariaLabel="Open profile" />
+            </div>
             <button
               onClick={() => logout()}
               className="bg-red-500 text-white px-4 py-2 rounded-full font-medium hover:bg-red-600 transition"

@@ -2,6 +2,9 @@ import React, { useEffect, useState } from "react";
 import { useAuth } from "../hooks/useAuth";
 import api from "../api/axiosConfig";
 import { useNavigate } from "react-router-dom";
+import { User } from 'lucide-react';
+import ProfileIcon from '../components/common/ProfileIcon';
+import Spinner from '../components/common/Spinner';
 
 const EditProfileForm = ({ user, onSave, onCancel, isSubmitting, updateError }) => {
   const [name, setName] = useState(user.name || "");
@@ -12,9 +15,9 @@ const EditProfileForm = ({ user, onSave, onCancel, isSubmitting, updateError }) 
     onSave({ name, phone_number: phone });
   };
 
-  return (
-    <div className="bg-white p-6 rounded-lg shadow-xl border border-indigo-100/50">
-      <h2 className="text-2xl font-bold text-indigo-700 mb-6">Edit Profile</h2>
+    return (
+    <div className="bg-white p-6 rounded-lg shadow-xl border border-green-100/50">
+      <h2 className="text-2xl font-bold text-green-700 mb-6">Edit Profile</h2>
       <form onSubmit={handleSubmit}>
         <div className="mb-4">
           <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
@@ -87,7 +90,11 @@ const ProfilePage = () => {
   };
 
   if (loading) {
-    return <div className="text-gray-600">Loading profile...</div>;
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Spinner size={56} />
+      </div>
+    );
   }
 
   if (!user) {
@@ -97,15 +104,21 @@ const ProfilePage = () => {
   return (
     <div className="min-h-screen w-full bg-gray-50 p-6 font-sans">
       <div className="max-w-5xl mx-auto">
-        <div className="bg-white shadow-lg rounded-2xl overflow-hidden">
+          <div className="bg-white shadow-lg rounded-2xl overflow-hidden">
+            <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+              <div className="text-lg font-medium text-gray-700">Hi, {user?.name?.split(' ')[0] || 'there'}</div>
+              <button onClick={() => navigate('/profile')} aria-label="Open profile" className="inline-flex items-center justify-center p-2 rounded-full bg-green-50 hover:bg-green-100">
+                <User className="text-green-700" />
+              </button>
+            </div>
           <div className="md:flex">
             <div className="md:w-1/3 bg-gradient-to-b from-indigo-50 to-white p-8 flex flex-col items-center">
               <div className="relative">
-                <div className="h-32 w-32 rounded-full bg-indigo-100 flex items-center justify-center text-4xl font-extrabold text-indigo-700 border-4 border-white shadow-lg">
-                  {user.name ? user.name.charAt(0).toUpperCase() : "U"}
+                <div className="h-32 w-32">
+                  <ProfileIcon initials={user.name ? user.name.charAt(0).toUpperCase() : ''} size={128} />
                 </div>
                 <div className="absolute -bottom-2 right-0">
-                    <button onClick={() => setIsEditing(true)} className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-full text-sm font-medium shadow hover:bg-indigo-700 transition">Edit</button>
+                    <button onClick={() => setIsEditing(true)} className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-full text-sm font-medium shadow hover:bg-green-700 transition">Edit</button>
                 </div>
               </div>
               <h3 className="mt-6 text-xl font-bold text-gray-900">{user.name || 'Unnamed User'}</h3>
@@ -146,7 +159,7 @@ const ProfilePage = () => {
                     </div>
                   </div>
                    <div className="mt-6 flex gap-3 justify-end">
-                       <button onClick={() => setIsEditing(true)} className="px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition">Edit Profile</button>
+                       <button onClick={() => setIsEditing(true)} className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition">Edit Profile</button>
                    </div>
                 </div>
               )}
