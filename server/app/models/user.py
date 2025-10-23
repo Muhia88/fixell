@@ -1,4 +1,4 @@
-from app import db 
+from app import db
 import bcrypt
 from datetime import datetime
 
@@ -10,20 +10,21 @@ class User(db.Model):
     name = db.Column(db.String(120), nullable=True)
     password_hash = db.Column(db.String(256), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    phone_number = db.Column(db.String(20), nullable=True, unique=True) 
 
-    # Relationships 
     listings = db.relationship('Listing', backref='author', lazy='dynamic')
     repair_guides = db.relationship('RepairGuide', backref='author', lazy='dynamic')
 
-    def __init__(self, email, password=None, name=None):
+    def __init__(self, email, password=None, name=None, phone_number=None): 
         self.email = email
         self.name = name
+        self.phone_number = phone_number
         if password:
             self.set_password(password)
         else:
-            self.password_hash = ''
+            self.password_hash = '' 
 
-    # Prevent reading plaintext password
     @property
     def password(self):
         raise AttributeError("Password is write-only")
@@ -54,13 +55,16 @@ class User(db.Model):
         except ValueError:
             return False
 
-    def to_dict(self):
-        return {
+    def to_dict(self, include_phone=False):
+        data = {
             'id': self.id,
             'email': self.email,
             'name': self.name,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
+        if include_phone:
+            data['phone_number'] = self.phone_number
+        return data
 
     def __repr__(self):
         return f'<User {self.email}>'
