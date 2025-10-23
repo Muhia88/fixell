@@ -6,29 +6,38 @@ import api from '../../../api/axiosConfig';
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(authService.getCurrentUser());
     const [token, setToken] = useState(localStorage.getItem('authToken'));
-    const [loading, setLoading] = useState(true); 
+    const [loading, setLoading] = useState(true);
+    const profileFetchedRef = React.useRef(false);
 
     useEffect(() => {
         const fetchFullProfile = async () => {
-            if (token && user) {
-                try {
-                    const response = await api.get('/auth/profile');
-                    const fullUser = response.data.user;
-                    setUser(fullUser); 
-                } catch (error) {
-                    console.error("Failed to fetch full profile on load:", error);
-                    if (error.response?.status === 401) {
-                        handleLogout();
-                    }
-                } finally {
-                     setLoading(false); 
+            if (!token) {
+                setLoading(false);
+                profileFetchedRef.current = false;
+                return;
+            }
+
+            if (profileFetchedRef.current) {
+                setLoading(false);
+                return;
+            }
+
+            try {
+                const response = await api.get('/auth/profile');
+                const fullUser = response.data.user;
+                setUser(fullUser);
+                profileFetchedRef.current = true;
+            } catch (error) {
+                console.error("Failed to fetch full profile on load:", error);
+                if (error.response?.status === 401) {
+                    handleLogout();
                 }
-            } else {
-                 setLoading(false); 
+            } finally {
+                setLoading(false);
             }
         };
         fetchFullProfile();
-    }, [token, user]); 
+    }, [token]);
 
 
     const handleLogin = async (email, password) => {
