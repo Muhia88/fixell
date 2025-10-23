@@ -9,11 +9,18 @@ const Marketplace = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({});
   const [searchTerm, setSearchTerm] = useState("");
+  // debounced search term prevents rapid-fire requests while user types
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(searchTerm);
+  // update debouncedSearchTerm after a pause (350ms)
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearchTerm(searchTerm), 350);
+    return () => clearTimeout(t);
+  }, [searchTerm]);
   const auth = useContext(AuthContext);
   const navigate = useNavigate();
   const PAGE_SIZE = 10;
   const status = 'active'; 
-  const fullCacheKey = `marketplace_full_${status}_${searchTerm || ''}_${filters.category || ''}_${filters.minPrice || ''}_${filters.maxPrice || ''}`;
+  const fullCacheKey = `marketplace_full_${status}_${debouncedSearchTerm || ''}_${filters.category || ''}_${filters.minPrice || ''}_${filters.maxPrice || ''}`;
 
   const [items, setItems] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -47,13 +54,13 @@ const Marketplace = () => {
     params.set('page', pageToFetch);
     params.set('limit', PAGE_SIZE);
     params.set('status', status); 
-    if (searchTerm) params.set('q', searchTerm);
+    if (debouncedSearchTerm) params.set('q', debouncedSearchTerm);
     if (filters.category) params.set('category', filters.category);
     if (filters.minPrice) params.set('min_price', filters.minPrice);
     if (filters.maxPrice) params.set('max_price', filters.maxPrice);
     const res = await api.get(`/listings?${params.toString()}`);
     return res.data || { success: false, page: pageToFetch, total_pages: 1, data: [] };
-  }, [searchTerm, filters.category, filters.minPrice, filters.maxPrice, status]);
+  }, [debouncedSearchTerm, filters.category, filters.minPrice, filters.maxPrice, status]);
 
   useEffect(() => {
     let cancelled = false;
