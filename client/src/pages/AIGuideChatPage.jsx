@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { Send, Cpu, Plus, MessageSquare, AlertTriangle, Edit2, Trash2 } from 'lucide-react';
 import Modal from '../components/common/modal';
 import { useToast } from '../components/common/useToast';
+import Spinner from '../components/common/Spinner';
 
 const TypingIndicator = () => (
     <div className="flex items-start gap-3">
@@ -279,7 +280,11 @@ const AiGuideChatPage = () => {
     };
 
     if (isFetchingConvos) {
-        return <div className="flex items-center justify-center h-full">Loading conversations...</div>;
+        return (
+            <div className="flex items-center justify-center h-full">
+                <Spinner size={56} />
+            </div>
+        );
     }
 
     if (fetchError) {

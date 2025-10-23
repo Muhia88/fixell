@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import api from '../api/axiosConfig';
 import { DollarSign, Package, Recycle, Wrench, Badge, Trash2 } from 'lucide-react'; 
+import Spinner from '../components/common/Spinner';
 
 const StatCard = ({ title, value, unit, icon: Icon, color }) => (
     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-start space-x-4">
@@ -138,7 +139,11 @@ const ImpactDashboardPage = () => {
     };
 
     if (loading) {
-        return <div className="text-gray-600">Loading your impact...</div>;
+        return (
+            <div className="flex items-center justify-center h-64">
+                <Spinner size={56} />
+            </div>
+        );
     }
 
     if (error) {
