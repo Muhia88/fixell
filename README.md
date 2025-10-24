@@ -30,8 +30,8 @@ Fixell is an AI-assisted sustainability marketplace for repairing, reusing, and 
 
 ```bash
 cd server
-python -m venv .venv
-source .venv/bin/activate
+pipenv install
+pipenv shell
 pip install -r requirements.txt
 ```
 
