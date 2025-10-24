@@ -17,7 +17,7 @@ def create_app(config_class=Config):
     app.config.from_object(config_class)
 
     CORS(app,
-         resources={r"/api/*": {"origins": "*"}},
+         resources={r"/api/*": {"origins": "fixell.vercel.app"}},
          supports_credentials=True,
          allow_headers=["Content-Type", "Authorization", "X-Requested-With", "Accept"],
          methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"])
