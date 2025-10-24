@@ -1,0 +1,40 @@
+"""add conversations and messages models
+
+Revision ID: 05b2f0c2b510
+Revises: 679fec179224
+Create Date: 2025-10-22 00:34:37.479451
+
+"""
+from alembic import op
+import sqlalchemy as sa
+
+
+revision = '05b2f0c2b510'
+down_revision = '679fec179224'
+branch_labels = None
+depends_on = None
+
+
+def upgrade():
+    op.create_table('conversations',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.Column('title', sa.String(length=200), nullable=True),
+    sa.Column('created_at', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('conversation_messages',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('conversation_id', sa.Integer(), nullable=False),
+    sa.Column('role', sa.String(length=32), nullable=False),
+    sa.Column('content', sa.Text(), nullable=True),
+    sa.Column('created_at', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['conversation_id'], ['conversations.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+
+
+def downgrade():
+    op.drop_table('conversation_messages')
+    op.drop_table('conversations')
