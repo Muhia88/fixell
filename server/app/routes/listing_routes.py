@@ -281,16 +281,19 @@ def mark_listing_as_sold(listing_id):
         if listing.status == ListingStatus.SOLD:
             return jsonify({'success': False, 'message': 'Listing is already marked as sold'}), 400
 
-        data = request.get_json()
-        sold_price = data.get('sold_price_kes')
+        data = request.get_json(silent=True) or request.form or {}
 
-        if sold_price is None:
+        if 'sold_price_kes' not in data:
             return jsonify({'success': False, 'message': 'sold_price_kes is required'}), 400
+
+        sold_price = data.get('sold_price_kes')
         try:
             sold_price_val = float(sold_price)
-            if sold_price_val < 0: raise ValueError()
         except (ValueError, TypeError):
-             return jsonify({'success': False, 'message': 'Invalid sold_price_kes value'}), 400
+            return jsonify({'success': False, 'message': 'sold_price_kes must be a number'}), 400
+
+        if sold_price_val < 0:
+            return jsonify({'success': False, 'message': 'sold_price_kes cannot be negative'}), 400
 
         listing.status = ListingStatus.SOLD
         listing.sold_price_kes = sold_price_val

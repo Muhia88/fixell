@@ -3,7 +3,9 @@ import Button from '../common/Button';
 import Input from '../common/input';
 
 const MarkAsSoldModal = ({ listing, onClose, onMarkAsSold }) => {
-    const [soldPrice, setSoldPrice] = useState(listing?.price || ''); 
+    const [soldPrice, setSoldPrice] = useState(
+        (typeof listing?.price !== 'undefined' && listing?.price !== null) ? listing.price : 0
+    );
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
