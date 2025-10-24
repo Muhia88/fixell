@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import heroImage from '../assets/images/hero section.jpg'; 
+import heroImage from '/hero section.jpg'; 
 
 
 const WrenchIcon = (props) => (
