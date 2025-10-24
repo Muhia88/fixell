@@ -79,7 +79,9 @@ npm run dev
 
 ## Authors
 
-- Danel Muhia (Muhia88) — lead developer
+- Danel Muhia 
+- Justin Tutu
+- Purity Okaroni
 
 Contributions welcome — open a PR or issue to suggest features or fixes.
 
