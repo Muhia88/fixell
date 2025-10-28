@@ -32,7 +32,6 @@ Fixell is an AI-assisted sustainability marketplace for repairing, reusing, and 
 cd server
 pipenv install
 pipenv shell
-pip install -r requirements.txt
 ```
 
 2. Set required environment variables (example):
@@ -89,6 +88,67 @@ Contributions welcome — open a PR or issue to suggest features or fixes.
 
 - Backend: pytest-based tests live in the `tests/` directory. Use Flask test client and a test DB for integration tests.
 - Frontend: use React Testing Library / Jest for component tests.
+
+Running tests locally
+---------------------
+
+Backend (pytest)
+
+- Enter the `server/` folder and use the project's virtualenv (pipenv) to run tests. Example (from project root):
+
+```bash
+cd server
+pipenv install --dev   # if you haven't already
+pipenv shell
+# run tests (pytest.ini is configured)
+pytest -q
+```
+
+Notes:
+- The server test suite uses an in-memory SQLite DB by default via a `TestConfig` in `tests/conftest.py`.
+- If you prefer not to activate the shell, you can run in one line:
+
+```bash
+cd server
+PYTHONPATH=. pipenv run pytest -q
+```
+
+Frontend (Jest + React Testing Library)
+
+- From the project root run the client test runner:
+
+```bash
+cd client
+npm install            
+npm test               # runs Jest (tests live under `client/_tests_`)
+```
+
+Notes:
+- If you hit peer-dependency errors during `npm install` (common with very new React versions), try:
+
+```bash
+npm install --legacy-peer-deps
+```
+
+- Tests use `jest.config.cjs` and `babel.config.cjs` already configured for this project. Static assets are mocked via `client/__mocks__`.
+
+Running both suites in CI
+------------------------
+
+- Example (local) to run both quickly from the repo root:
+
+```bash
+# server tests
+cd server && PYTHONPATH=. pipenv run pytest -q
+# client tests
+cd ../client && npm test
+```
+
+Helper targets
+--------------
+
+- There is a `server/Makefile` with `make test` and `make ci` targets that set PYTHONPATH and run pytest. Use `make ci` in CI for quieter output.
+
 
 ## Troubleshooting
 
