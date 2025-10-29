@@ -4,19 +4,19 @@ import FilterSidebar from "../components/marketplace/FilterSidebar";
 import { AuthContext } from "../components/context/ui/authContextValue.jsx";
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axiosConfig';
+import { useToast } from '../components/common/useToast';
 
 const Marketplace = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({});
   const [searchTerm, setSearchTerm] = useState("");
-  // debounced search term prevents rapid-fire requests while user types
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(searchTerm);
-  // update debouncedSearchTerm after a pause (350ms)
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearchTerm(searchTerm), 350);
     return () => clearTimeout(t);
   }, [searchTerm]);
   const auth = useContext(AuthContext);
+  const toast = useToast();
   const navigate = useNavigate();
   const PAGE_SIZE = 10;
   const status = 'active'; 
@@ -87,6 +87,43 @@ const Marketplace = () => {
     doInitial();
     return () => { cancelled = true; };
   }, [fullCacheKey, loadedAll, fetchPage]);
+
+  useEffect(() => {
+    const handler = (e) => {
+      try {
+        const listing = e?.detail;
+        if (!listing) return;
+        if ((listing.status || 'active') !== 'active') return;
+
+        const q = (debouncedSearchTerm || '').toLowerCase();
+        if (q) {
+          const inTitle = (listing.title || '').toLowerCase().includes(q);
+          const inDesc = (listing.description || '').toLowerCase().includes(q);
+          if (!inTitle && !inDesc) return;
+        }
+        if (filters.category && listing.category !== filters.category) return;
+        if (filters.minPrice && Number(listing.price) < Number(filters.minPrice)) return;
+        if (filters.maxPrice && Number(listing.price) > Number(filters.maxPrice)) return;
+
+        setItems((prev) => {
+          if (!prev) {
+            try { sessionStorage.setItem(fullCacheKey, JSON.stringify({ ts: Date.now(), value: [listing] })); } catch (err) { console.warn('Failed to write marketplace cache (initial)', err); }
+            try { toast?.success({ title: 'New listing added', message: listing.title || 'A new listing was added' }); } catch (err) { console.warn('Failed to show toast', err); }
+            return [listing];
+          }
+          if (prev.some((it) => it.id === listing.id)) return prev;
+          const combined = [listing, ...prev];
+          try { sessionStorage.setItem(fullCacheKey, JSON.stringify({ ts: Date.now(), value: combined })); } catch (err) { console.warn('Failed to write marketplace cache (prepend)', err); }
+          try { toast?.success({ title: 'New listing added', message: listing.title || 'A new listing was added' }); } catch (err) { console.warn('Failed to show toast', err); }
+          return combined;
+        });
+      } catch (err) {
+        console.warn('marketplace:prepend handler error', err);
+      }
+    };
+    window.addEventListener('marketplace:prepend', handler);
+    return () => window.removeEventListener('marketplace:prepend', handler);
+  }, [debouncedSearchTerm, filters.category, filters.minPrice, filters.maxPrice, fullCacheKey, toast]);
 
   const SkeletonGrid = ({ count = PAGE_SIZE }) => (
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">

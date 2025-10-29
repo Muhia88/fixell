@@ -62,6 +62,7 @@ export default function CreateListingPage() {
       const res = await api.post('/listings', fd)
 
       if (res.data && res.data.success) {
+        const createdListing = res.data.data;
         setMessage('Listing created successfully')
         toast?.success({ title: 'Listing created', message: `Your listing "${form.title}" was created.` })
         setForm(initialState)
@@ -70,6 +71,38 @@ export default function CreateListingPage() {
         if (uid) {
           try { sessionStorage.removeItem(`my_listings_full_active_${uid}`); } catch { /* ignore */ }
         }
+
+        try {
+          for (const key of Object.keys(sessionStorage)) {
+            if (key && key.startsWith('marketplace_full_')) {
+              try { sessionStorage.removeItem(key); } catch { /* ignore */ }
+            }
+          }
+        } catch {
+          // not critical, continue
+        }
+
+        try {
+          if (createdListing) {
+            for (const key of Object.keys(sessionStorage)) {
+              if (key && key.startsWith('marketplace_full_')) {
+                try {
+                  const raw = sessionStorage.getItem(key);
+                  if (!raw) continue;
+                  const parsed = JSON.parse(raw);
+                  if (parsed && Array.isArray(parsed.value)) {
+                    const exists = parsed.value.find((it) => it && it.id === createdListing.id);
+                    if (!exists) {
+                      parsed.value.unshift(createdListing);
+                      try { sessionStorage.setItem(key, JSON.stringify({ ts: Date.now(), value: parsed.value })); } catch { /* ignore */ }
+                    }
+                  }
+                } catch { /* ignore per-cache errors */ }
+              }
+            }
+            try { window.dispatchEvent(new CustomEvent('marketplace:prepend', { detail: createdListing })); } catch { /* ignore */ }
+          }
+        } catch { /* ignore optimistic update errors */ }
         navigate('/my-listings')
       } else {
         setMessage(res.data.message || 'Unexpected response')
