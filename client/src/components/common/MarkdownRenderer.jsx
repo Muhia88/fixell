@@ -94,8 +94,20 @@ export default function MarkdownRenderer({ content, textColor = 'text-gray-800' 
         if (/^(\d+)\.\s+/.test(line) || /^[-*+]\s+/.test(line)) {
             const isOrdered = /^(\d+)\./.test(line);
             const items = [];
-            while (i < lines.length && (isOrdered ? /^(\d+)\.\s+/.test(lines[i].trim()) : /^[-*+]\s+/.test(lines[i].trim()))) {
-                const cur = lines[i].trim();
+            while (i < lines.length) {
+                const trimmed = lines[i].trim();
+                if (trimmed === '') {
+                    let j = i + 1;
+                    while (j < lines.length && lines[j].trim() === '') j++;
+                    if (j < lines.length && (isOrdered ? /^(\d+)\.\s+/.test(lines[j].trim()) : /^[-*+]\s+/.test(lines[j].trim()))) {
+                        i = j;
+                        continue;
+                    }
+                    break;
+                }
+
+                if (!(isOrdered ? /^(\d+)\.\s+/.test(trimmed) : /^[-*+]\s+/.test(trimmed))) break;
+                const cur = trimmed;
                 const itemText = cur.replace(/^(?:\d+\.|[-*+])\s+/, '').trim();
                 items.push(itemText);
                 i++;
