@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import heroImage from '/hero section.jpg'; 
 
@@ -94,10 +94,9 @@ const App = () => {
                         Fixell is your go-to platform for sustainable living. We help you repair, rehome, or renew your household items, reducing consumption and promoting a circular economy.
                     </p>
                     <div className="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4">
-        
-                        <a href="/register" className="inline-block px-8 py-3 bg-fixell-green text-white text-lg font-semibold rounded-full shadow-lg hover:bg-emerald-700 transition duration-300">
+                        <Link to="/register" className="inline-block px-8 py-3 bg-fixell-green text-white text-lg font-semibold rounded-full shadow-lg hover:bg-emerald-700 transition duration-300">
                             Get Started
-                        </a>
+                        </Link>
                         <a href="#how-it-works" className="inline-block px-8 py-3 bg-transparent border-2 border-white text-white text-lg font-semibold rounded-full hover:bg-white hover:text-fixell-green transition duration-300">
                             Learn More
                         </a>
@@ -135,9 +134,9 @@ const App = () => {
                         Start your journey towards a more sustainable life with Fixell. Sign up now and begin reducing waste, one item at a time.
                     </p>
     
-                    <a href="/login" className="inline-block px-10 py-4 bg-fixell-green text-white text-xl font-bold rounded-full shadow-lg hover:bg-emerald-700 transition duration-300 transform hover:scale-[1.02] active:scale-[0.98]">
+                    <Link to="/login" className="inline-block px-10 py-4 bg-fixell-green text-white text-xl font-bold rounded-full shadow-lg hover:bg-emerald-700 transition duration-300 transform hover:scale-[1.02] active:scale-[0.98]">
                         Login
-                    </a>
+                    </Link>
                 </div>
             </section>
         </div>
