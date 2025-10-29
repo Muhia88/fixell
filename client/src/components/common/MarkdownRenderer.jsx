@@ -90,7 +90,41 @@ export default function MarkdownRenderer({ content, textColor = 'text-gray-800' 
             continue;
         }
 
-     
+        if (/.*:\s*$/.test(line)) {
+            let j = i + 1;
+            while (j < lines.length && lines[j].trim() === '') j++;
+            if (j < lines.length && /^[-*+]\s+/.test(lines[j].trim())) {
+                const titleText = line.replace(/:\s*$/, '').trim();
+                const items = [];
+                while (j < lines.length) {
+                    const t = lines[j].trim();
+                    if (t === '') {
+                        let k = j + 1;
+                        while (k < lines.length && lines[k].trim() === '') k++;
+                        if (k < lines.length && /^[-*+]\s+/.test(lines[k].trim())) {
+                            j = k;
+                            continue;
+                        }
+                        break;
+                    }
+                    if (!/^[-*+]\s+/.test(t)) break;
+                    items.push(t.replace(/^[-*+]\s+/, '').trim());
+                    j++;
+                }
+                i = j;
+                nodes.push(<h4 key={`md-h4-${keyCounter++}`} className={`text-lg font-semibold mt-4 mb-2 ${textColor}`}>{titleText}</h4>);
+                const listKey = `md-ul-${keyCounter++}`;
+                nodes.push(
+                    <ul key={listKey} className={`list-disc list-inside pl-2 space-y-2 ${textColor}`}>
+                        {items.map((it, idx) => (
+                            <li key={`${listKey}-li-${idx}`} className="leading-relaxed">{renderInline(it)}</li>
+                        ))}
+                    </ul>
+                );
+                continue;
+            }
+        }
+
         if (/^(\d+)\.\s+/.test(line) || /^[-*+]\s+/.test(line)) {
             const isOrdered = /^(\d+)\./.test(line);
             const items = [];
